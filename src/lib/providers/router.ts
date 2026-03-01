@@ -2,6 +2,7 @@ import { maskawasubProvider, gladtidingsProvider, alrahuzProvider } from "./vtu-
 import type { ResellerProvider } from "./vtu-reseller";
 import { vtpassProvider } from "./vtpass";
 import type { ProviderResponse } from "./types";
+import { logger } from "@/lib/utils/logger";
 
 type ServiceType = "airtime" | "data" | "electricity" | "cable" | "exam_pin";
 
@@ -71,21 +72,21 @@ export async function executeWithFallback(
     }
 
     if (primary.name !== fallback.name) {
-      console.error(`${primary.name} failed for ${reference}, trying fallback ${fallback.name}`);
+      logger.warn({ primary: primary.name, fallback: fallback.name, reference }, "Primary provider failed, trying fallback");
       const fallbackResult = await execute(fallback);
       return { ...fallbackResult, provider_used: fallback.name };
     }
 
     return { ...result, provider_used: primary.name };
   } catch (err) {
-    console.error(`${primary.name} threw for ${reference}:`, err);
+    logger.error({ primary: primary.name, reference, error: err instanceof Error ? err.message : "Unknown" }, "Primary provider threw");
 
     if (primary.name !== fallback.name) {
       try {
         const fallbackResult = await execute(fallback);
         return { ...fallbackResult, provider_used: fallback.name };
       } catch (fallbackErr) {
-        console.error(`Fallback ${fallback.name} also threw:`, fallbackErr);
+        logger.error({ fallback: fallback.name, reference, error: fallbackErr instanceof Error ? fallbackErr.message : "Unknown" }, "Fallback provider also threw");
       }
     }
 

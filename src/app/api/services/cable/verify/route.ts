@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getBillProvider } from "@/lib/providers";
 import { isValidSmartcardNumber } from "@/lib/utils/validators";
+import { logger } from "@/lib/utils/logger";
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result);
   } catch (err) {
-    console.error("Smartcard verification error:", err);
+    logger.error({ error: err instanceof Error ? err.message : "Unknown" }, "Smartcard verification error");
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

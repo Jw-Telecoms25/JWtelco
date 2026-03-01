@@ -7,6 +7,7 @@ import { isValidMeterNumber } from "@/lib/utils/validators";
 import { assertActiveUser, AccountBlockedError } from "@/lib/utils/guards";
 import { DISCOS } from "@/lib/utils/constants";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
+import { logger } from "@/lib/utils/logger";
 
 const VALID_DISCO_IDS = DISCOS.map(d => d.id);
 
@@ -44,6 +45,27 @@ export async function POST(request: NextRequest) {
     }
 
     const reference = generateReference("ELEC");
+    const idempotencyKey = request.headers.get("x-idempotency-key") || undefined;
+
+    // Idempotency check
+    if (idempotencyKey) {
+      const { data: existing } = await admin
+        .from("transactions")
+        .select("id, status, reference")
+        .eq("idempotency_key", idempotencyKey)
+        .single();
+
+      if (existing && (existing.status === "success" || existing.status === "processing")) {
+        return NextResponse.json({
+          success: true,
+          message: "Duplicate request — original transaction returned",
+          reference: existing.reference,
+          transactionId: existing.id,
+          status: existing.status,
+          duplicate: true,
+        });
+      }
+    }
 
     // Debit wallet
     const { data: txnId, error: walletError } = await admin.rpc(
@@ -63,6 +85,10 @@ export async function POST(request: NextRequest) {
         ? "Insufficient wallet balance"
         : "Failed to process payment";
       return NextResponse.json({ error: msg }, { status: 400 });
+    }
+
+    if (idempotencyKey && txnId) {
+      await admin.from("transactions").update({ idempotency_key: idempotencyKey }).eq("id", txnId);
     }
 
     // Call provider with fallback (VTPass → Maskawasub)
@@ -123,7 +149,7 @@ export async function POST(request: NextRequest) {
     if (err instanceof AccountBlockedError) {
       return NextResponse.json({ error: err.message }, { status: 403 });
     }
-    console.error("Electricity purchase error:", err);
+    logger.error({ error: err instanceof Error ? err.message : "Unknown" }, "Electricity purchase error");
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

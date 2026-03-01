@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { reserveAccount } from "@/lib/providers/aspfiy";
 import { generateReference } from "@/lib/utils/reference";
 import { assertActiveUser, AccountBlockedError } from "@/lib/utils/guards";
+import { logger } from "@/lib/utils/logger";
 
 export async function GET() {
   try {
@@ -84,7 +85,7 @@ export async function GET() {
     if (err instanceof AccountBlockedError) {
       return NextResponse.json({ error: err.message }, { status: 403 });
     }
-    console.error("Virtual account error:", err);
+    logger.error({ error: err instanceof Error ? err.message : "Unknown" }, "Virtual account error");
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Failed to create virtual account" },
       { status: 500 }

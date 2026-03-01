@@ -7,6 +7,7 @@ import { isValidSmartcardNumber } from "@/lib/utils/validators";
 import { assertActiveUser, AccountBlockedError } from "@/lib/utils/guards";
 import { executePurchase, getRolePrice } from "@/lib/services/purchase-executor";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
+import { logger } from "@/lib/utils/logger";
 
 export async function POST(request: NextRequest) {
   try {
@@ -57,6 +58,7 @@ export async function POST(request: NextRequest) {
 
     const price = getRolePrice(plan, profile?.role || "user");
     const reference = generateReference("CABLE");
+    const idempotencyKey = request.headers.get("x-idempotency-key") || undefined;
 
     const { response } = await executePurchase({
       admin,
@@ -67,6 +69,7 @@ export async function POST(request: NextRequest) {
       description: `${cableProvider.toUpperCase()} ${plan.plan_name} - Card: ${smartcardNumber}`,
       reference,
       metadata: { smartcardNumber, provider: cableProvider, planCode, plan_name: plan.plan_name },
+      idempotencyKey,
       execute: () =>
         executeWithFallback(
           "cable",
@@ -81,7 +84,7 @@ export async function POST(request: NextRequest) {
     if (err instanceof AccountBlockedError) {
       return NextResponse.json({ error: err.message }, { status: 403 });
     }
-    console.error("Cable subscription error:", err);
+    logger.error({ error: err instanceof Error ? err.message : "Unknown" }, "Cable subscription error");
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

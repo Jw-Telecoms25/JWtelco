@@ -5,6 +5,7 @@ import { generateReference } from "@/lib/utils/reference";
 import { initializeTransaction } from "@/lib/providers/paystack";
 import { assertActiveUser, AccountBlockedError } from "@/lib/utils/guards";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
+import { logger } from "@/lib/utils/logger";
 
 export async function POST(request: NextRequest) {
   try {
@@ -63,7 +64,7 @@ export async function POST(request: NextRequest) {
     if (err instanceof AccountBlockedError) {
       return NextResponse.json({ error: err.message }, { status: 403 });
     }
-    console.error("Fund initialization error:", err);
+    logger.error({ error: err instanceof Error ? err.message : "Unknown" }, "Fund initialization error");
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Failed to initialize payment" },
       { status: 500 }

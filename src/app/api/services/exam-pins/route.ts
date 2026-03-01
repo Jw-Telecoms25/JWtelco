@@ -6,6 +6,7 @@ import { generateReference } from "@/lib/utils/reference";
 import { assertActiveUser, AccountBlockedError } from "@/lib/utils/guards";
 import { getRolePrice } from "@/lib/services/purchase-executor";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
+import { logger } from "@/lib/utils/logger";
 
 export async function POST(request: NextRequest) {
   try {
@@ -55,6 +56,27 @@ export async function POST(request: NextRequest) {
     const unitPrice = getRolePrice(plan, profile?.role || "user");
     const totalPrice = unitPrice * quantity;
     const reference = generateReference("EXAM");
+    const idempotencyKey = request.headers.get("x-idempotency-key") || undefined;
+
+    // Idempotency check
+    if (idempotencyKey) {
+      const { data: existing } = await admin
+        .from("transactions")
+        .select("id, status, reference")
+        .eq("idempotency_key", idempotencyKey)
+        .single();
+
+      if (existing && (existing.status === "success" || existing.status === "processing")) {
+        return NextResponse.json({
+          success: true,
+          message: "Duplicate request — original transaction returned",
+          reference: existing.reference,
+          transactionId: existing.id,
+          status: existing.status,
+          duplicate: true,
+        });
+      }
+    }
 
     const { data: txnId, error: walletError } = await admin.rpc(
       "process_wallet_transaction",
@@ -73,6 +95,10 @@ export async function POST(request: NextRequest) {
         ? "Insufficient wallet balance"
         : "Failed to process payment";
       return NextResponse.json({ error: msg }, { status: 400 });
+    }
+
+    if (idempotencyKey && txnId) {
+      await admin.from("transactions").update({ idempotency_key: idempotencyKey }).eq("id", txnId);
     }
 
     const result = await executeWithFallback(
@@ -133,7 +159,7 @@ export async function POST(request: NextRequest) {
     if (err instanceof AccountBlockedError) {
       return NextResponse.json({ error: err.message }, { status: 403 });
     }
-    console.error("Exam pin purchase error:", err);
+    logger.error({ error: err instanceof Error ? err.message : "Unknown" }, "Exam pin purchase error");
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

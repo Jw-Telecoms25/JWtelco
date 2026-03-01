@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, Shield, Clock, TrendingUp } from "lucide-react";
 
@@ -82,13 +83,13 @@ export default function Hero() {
               transition={{ duration: 0.5, delay: 0.4 }}
               className="mt-10 flex flex-wrap gap-4"
             >
-              <a
-                href="#"
+              <Link
+                href="/register"
                 className="group inline-flex items-center gap-2 px-7 py-4 bg-accent text-navy font-bold rounded-2xl hover:bg-accent-bright transition-all hover:shadow-xl hover:shadow-accent/20 active:scale-[0.98]"
               >
                 Create Free Account
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </a>
+              </Link>
               <a
                 href="#services"
                 className="inline-flex items-center gap-2 px-7 py-4 text-white/70 font-semibold rounded-2xl border border-white/10 hover:border-white/20 hover:text-white transition-all"

@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { vtpassProvider } from "@/lib/providers/vtpass";
 import { maskawasubProvider } from "@/lib/providers/vtu-reseller";
 import { generateReference } from "@/lib/utils/reference";
+import { logger } from "@/lib/utils/logger";
 
 const CRON_SECRET = process.env.CRON_SECRET || "";
 const MAX_AGE_HOURS = 24;
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest) {
     .limit(BATCH_SIZE);
 
   if (error) {
-    console.error("Requery: failed to fetch pending transactions:", error);
+    logger.error({ error: error instanceof Error ? error.message : "Unknown" }, "Requery: failed to fetch pending transactions");
     return NextResponse.json({ error: "Failed to fetch" }, { status: 500 });
   }
 
@@ -70,7 +71,7 @@ export async function GET(request: NextRequest) {
         stillPending++;
       }
     } catch (err) {
-      console.error(`Requery failed for ${txn.reference}:`, err);
+      logger.error({ error: err instanceof Error ? err.message : "Unknown", reference: txn.reference }, "Requery failed");
       errors++;
     }
   }

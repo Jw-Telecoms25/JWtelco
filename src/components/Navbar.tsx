@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, Zap } from "lucide-react";
 
@@ -56,18 +57,18 @@ export default function Navbar() {
         </div>
 
         <div className="hidden md:flex items-center gap-3">
-          <a
-            href="#"
+          <Link
+            href="/login"
             className="px-4 py-2 text-sm font-semibold text-navy/80 hover:text-navy transition-colors"
           >
             Log in
-          </a>
-          <a
-            href="#"
+          </Link>
+          <Link
+            href="/register"
             className="px-5 py-2.5 text-sm font-semibold text-white bg-navy rounded-xl hover:bg-navy-light transition-all hover:shadow-lg hover:shadow-navy/20 active:scale-[0.98]"
           >
             Get Started
-          </a>
+          </Link>
         </div>
 
         <button
@@ -98,12 +99,12 @@ export default function Navbar() {
                 </a>
               ))}
               <div className="mt-3 pt-3 border-t border-border flex flex-col gap-2">
-                <a href="#" className="px-4 py-3 text-sm font-semibold text-center text-navy/80 rounded-lg hover:bg-navy/5">
+                <Link href="/login" className="px-4 py-3 text-sm font-semibold text-center text-navy/80 rounded-lg hover:bg-navy/5">
                   Log in
-                </a>
-                <a href="#" className="px-4 py-3 text-sm font-semibold text-center text-white bg-navy rounded-xl">
+                </Link>
+                <Link href="/register" className="px-4 py-3 text-sm font-semibold text-center text-white bg-navy rounded-xl">
                   Get Started
-                </a>
+                </Link>
               </div>
             </div>
           </motion.div>

@@ -61,6 +61,13 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    if (profile.role !== "super_admin") {
+      return NextResponse.json(
+        { error: "Only super admins can modify services" },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const { id, ...updates } = body;
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { logger } from "@/lib/utils/logger";
 
 export async function GET() {
   try {
@@ -73,7 +74,7 @@ export async function GET() {
       totalRevenue,
     });
   } catch (err) {
-    console.error("Admin stats error:", err);
+    logger.error({ error: err instanceof Error ? err.message : "Unknown" }, "Admin stats error");
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

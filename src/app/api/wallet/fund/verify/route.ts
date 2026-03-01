@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyTransaction } from "@/lib/providers/paystack";
 import { generateReference } from "@/lib/utils/reference";
+import { logger } from "@/lib/utils/logger";
 
 export async function GET(request: NextRequest) {
   try {
@@ -71,7 +72,7 @@ export async function GET(request: NextRequest) {
       if (walletError.message.includes("duplicate")) {
         return NextResponse.json({ status: "success", message: "Wallet funded successfully" });
       }
-      console.error("Fund verify: wallet credit failed", walletError);
+      logger.error({ error: walletError instanceof Error ? walletError.message : "Unknown" }, "Fund verify: wallet credit failed");
       return NextResponse.json({ error: "Failed to credit wallet" }, { status: 500 });
     }
 
@@ -80,7 +81,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ status: "success", message: "Wallet funded successfully" });
   } catch (err) {
-    console.error("Fund verify error:", err);
+    logger.error({ error: err instanceof Error ? err.message : "Unknown" }, "Fund verify error");
     return NextResponse.json({ error: "Verification failed" }, { status: 500 });
   }
 }

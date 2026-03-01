@@ -13,29 +13,35 @@ export interface VerifyResponse {
   smartcard_number?: string;
 }
 
-export interface VTUProvider {
-  name: string;
+// ── Capability-specific interfaces ──────────────────────────
 
+export interface AirtimeProvider {
+  name: string;
   buyAirtime(params: {
     phone: string;
     network: string;
     amount: number; // kobo
     reference: string;
   }): Promise<ProviderResponse>;
+}
 
+export interface DataProvider {
+  name: string;
   buyData(params: {
     phone: string;
     network: string;
     planCode: string;
     reference: string;
   }): Promise<ProviderResponse>;
+}
 
+export interface ElectricityProvider {
+  name: string;
   verifyMeter(params: {
     meterNumber: string;
     disco: string;
     meterType: "prepaid" | "postpaid";
   }): Promise<VerifyResponse>;
-
   buyElectricity(params: {
     meterNumber: string;
     disco: string;
@@ -43,22 +49,35 @@ export interface VTUProvider {
     amount: number; // kobo
     reference: string;
   }): Promise<ProviderResponse>;
+}
 
+export interface CableProvider {
+  name: string;
   verifySmartcard(params: {
     smartcardNumber: string;
     provider: string;
   }): Promise<VerifyResponse>;
-
   subscribeCable(params: {
     smartcardNumber: string;
     provider: string;
     planCode: string;
     reference: string;
   }): Promise<ProviderResponse>;
+}
 
+export interface ExamPinProvider {
+  name: string;
   buyExamPin(params: {
     examType: string;
     quantity: number;
     reference: string;
   }): Promise<ProviderResponse>;
 }
+
+// ── Composite: full VTU provider (VTPass implements all) ────
+
+export type VTUProvider = AirtimeProvider &
+  DataProvider &
+  ElectricityProvider &
+  CableProvider &
+  ExamPinProvider;

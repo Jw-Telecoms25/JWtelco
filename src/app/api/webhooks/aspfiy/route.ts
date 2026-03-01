@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateReference } from "@/lib/utils/reference";
+import { logger } from "@/lib/utils/logger";
 
 export async function POST(request: NextRequest) {
   try {
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
 
     const lookupRef = reference || accountNumber;
     if (!lookupRef) {
-      console.error("Aspfiy webhook: no reference or accountNumber to look up user");
+      logger.error({}, "Aspfiy webhook: no reference or accountNumber to look up user");
       return NextResponse.json({ received: true });
     }
 
@@ -56,7 +57,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (!session) {
-      console.error("Aspfiy webhook: no session for reference", lookupRef);
+      logger.error({ detail: lookupRef }, "Aspfiy webhook: no session for reference");
       await admin.from("webhook_events").insert({
         gateway: "aspfiy",
         event_type: "charge.success",
@@ -93,7 +94,7 @@ export async function POST(request: NextRequest) {
     );
 
     if (walletError) {
-      console.error("Aspfiy webhook: wallet credit failed", walletError);
+      logger.error({ error: walletError instanceof Error ? walletError.message : "Unknown" }, "Aspfiy webhook: wallet credit failed");
       return NextResponse.json({ error: "Credit failed" }, { status: 500 });
     }
 
@@ -110,7 +111,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ received: true });
   } catch (err) {
-    console.error("Aspfiy webhook error:", err);
+    logger.error({ error: err instanceof Error ? err.message : "Unknown" }, "Aspfiy webhook error");
     return NextResponse.json({ error: "Webhook processing failed" }, { status: 500 });
   }
 }

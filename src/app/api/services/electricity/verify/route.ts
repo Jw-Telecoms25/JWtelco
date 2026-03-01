@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getBillProvider } from "@/lib/providers";
 import { isValidMeterNumber } from "@/lib/utils/validators";
 import { DISCOS } from "@/lib/utils/constants";
+import { logger } from "@/lib/utils/logger";
 
 const VALID_DISCO_IDS = DISCOS.map(d => d.id);
 
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result);
   } catch (err) {
-    console.error("Meter verification error:", err);
+    logger.error({ error: err instanceof Error ? err.message : "Unknown" }, "Meter verification error");
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

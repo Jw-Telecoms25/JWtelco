@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyWebhookSignature } from "@/lib/providers/paystack";
 import { generateReference } from "@/lib/utils/reference";
+import { logger } from "@/lib/utils/logger";
 
 export async function POST(request: NextRequest) {
   const rawBody = await request.text();
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (!session) {
-    console.error("Paystack webhook: no session for reference", reference);
+    logger.error({ detail: reference }, "Paystack webhook: no session for reference");
     return NextResponse.json({ received: true });
   }
 
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (session.amount !== amount) {
-    console.error("Paystack webhook: amount mismatch", { expected: session.amount, got: amount });
+    logger.error({ detail: { expected: session.amount, got: amount } }, "Paystack webhook: amount mismatch");
     await admin
       .from("payment_sessions")
       .update({ status: "failed" })
@@ -65,7 +66,7 @@ export async function POST(request: NextRequest) {
   );
 
   if (walletError) {
-    console.error("Paystack webhook: wallet credit failed", walletError);
+    logger.error({ error: walletError instanceof Error ? walletError.message : "Unknown" }, "Paystack webhook: wallet credit failed");
     return NextResponse.json({ error: "Credit failed" }, { status: 500 });
   }
 

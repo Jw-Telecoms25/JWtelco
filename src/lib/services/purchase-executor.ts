@@ -12,6 +12,7 @@ interface PurchaseParams {
   description: string;
   reference: string;
   metadata: Record<string, unknown>;
+  idempotencyKey?: string;
   execute: () => Promise<ProviderResponse & { provider_used: string }>;
   buildSuccessResponse?: (txnId: string, result: ProviderResponse & { provider_used: string }) => Record<string, unknown>;
 }
@@ -23,9 +24,40 @@ interface PurchaseResult {
 }
 
 export async function executePurchase(params: PurchaseParams): Promise<PurchaseResult> {
-  const { admin, userId, price, costPrice, type, description, reference, metadata, execute, buildSuccessResponse } = params;
+  const { admin, userId, price, costPrice, type, description, reference, metadata, idempotencyKey, execute, buildSuccessResponse } = params;
+
+  // 0. Idempotency check — if this key was already used, return the existing result
+  if (idempotencyKey) {
+    const { data: existing } = await admin
+      .from("transactions")
+      .select("id, status, reference")
+      .eq("idempotency_key", idempotencyKey)
+      .single();
+
+    if (existing) {
+      if (existing.status === "success" || existing.status === "processing") {
+        return {
+          response: NextResponse.json({
+            success: true,
+            message: "Duplicate request — original transaction returned",
+            reference: existing.reference,
+            transactionId: existing.id,
+            status: existing.status,
+            duplicate: true,
+          }),
+          txnId: existing.id,
+          status: existing.status as "success" | "processing",
+        };
+      }
+      // If previous attempt failed, allow retry with same key
+    }
+  }
 
   // 1. Debit wallet
+  const txnMetadata = idempotencyKey
+    ? { ...metadata, idempotency_key: idempotencyKey }
+    : metadata;
+
   const { data: txnId, error: walletError } = await admin.rpc(
     "process_wallet_transaction",
     {
@@ -34,9 +66,17 @@ export async function executePurchase(params: PurchaseParams): Promise<PurchaseR
       p_type: type,
       p_description: description,
       p_reference: reference,
-      p_metadata: metadata,
+      p_metadata: txnMetadata,
     }
   );
+
+  // Store idempotency key on the transaction row
+  if (txnId && idempotencyKey) {
+    await admin
+      .from("transactions")
+      .update({ idempotency_key: idempotencyKey })
+      .eq("id", txnId);
+  }
 
   if (walletError) {
     const msg = walletError.message.includes("Insufficient")

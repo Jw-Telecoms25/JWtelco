@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { logger } from "@/lib/utils/logger";
 
 export async function GET(request: NextRequest) {
   try {
@@ -44,7 +45,7 @@ export async function GET(request: NextRequest) {
     const { data, count, error } = await query;
 
     if (error) {
-      console.error("Fetch transactions error:", error);
+      logger.error({ error: error instanceof Error ? error.message : "Unknown" }, "Fetch transactions error");
       return NextResponse.json({ error: "Failed to fetch transactions" }, { status: 500 });
     }
 
