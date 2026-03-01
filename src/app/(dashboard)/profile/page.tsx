@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { User, Mail, Phone, Lock, Loader2 } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { User, Mail, Phone, Lock, Loader2, Gift, Copy, Users } from "lucide-react";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { useSupabase } from "@/components/providers/SupabaseProvider";
 import { useUIStore } from "@/lib/stores/ui-store";
@@ -22,6 +22,19 @@ export default function ProfilePage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  // Referral stats
+  const [referral, setReferral] = useState<{ referralCode: string; totalReferred: number; totalBonusKobo: number } | null>(null);
+  const [copiedCode, setCopiedCode] = useState(false);
+
+  const fetchReferral = useCallback(async () => {
+    try {
+      const res = await fetch("/api/referrals");
+      if (res.ok) setReferral(await res.json());
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => { fetchReferral(); }, [fetchReferral]);
 
   async function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault();
@@ -153,6 +166,55 @@ export default function ProfilePage() {
           Save Changes
         </button>
       </form>
+
+      {/* Referral Section */}
+      {referral && (
+        <div className="bg-surface rounded-xl border border-border p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <Gift className="w-5 h-5 text-accent" />
+            <h2 className="font-semibold">Refer & Earn</h2>
+          </div>
+          <p className="text-sm text-muted">
+            Share your referral code with friends. You both get <strong className="text-navy">₦100</strong> when they make their first purchase.
+          </p>
+
+          {/* Referral Code */}
+          <div className="flex items-center gap-2">
+            <div className="flex-1 px-4 py-3 bg-surface-elevated rounded-xl font-mono text-lg font-bold tracking-wider text-center text-navy">
+              {referral.referralCode}
+            </div>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(referral.referralCode);
+                setCopiedCode(true);
+                setTimeout(() => setCopiedCode(false), 2000);
+              }}
+              className="px-4 py-3 rounded-xl border border-border hover:bg-surface-elevated transition-colors"
+              aria-label="Copy referral code"
+            >
+              {copiedCode ? <span className="text-xs text-accent font-medium">Copied!</span> : <Copy className="w-4 h-4 text-muted" />}
+            </button>
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-surface-elevated rounded-xl p-4 text-center">
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <Users className="w-4 h-4 text-muted" />
+              </div>
+              <p className="text-2xl font-bold text-navy">{referral.totalReferred}</p>
+              <p className="text-xs text-muted">People Referred</p>
+            </div>
+            <div className="bg-surface-elevated rounded-xl p-4 text-center">
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <Gift className="w-4 h-4 text-muted" />
+              </div>
+              <p className="text-2xl font-bold text-accent">₦{(referral.totalBonusKobo / 100).toLocaleString()}</p>
+              <p className="text-xs text-muted">Total Earned</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Change Password */}
       <form onSubmit={handleChangePassword} className="bg-surface rounded-xl border border-border p-6 space-y-4">

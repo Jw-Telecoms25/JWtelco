@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Receipt, ArrowDownRight, ArrowUpRight, Loader2, Search } from "lucide-react";
+import Link from "next/link";
+import { Receipt, ArrowDownRight, ArrowUpRight, Loader2, Search, ExternalLink } from "lucide-react";
 import { useTransactions } from "@/lib/hooks/use-transactions";
 import { formatNaira, formatDate } from "@/lib/utils/format";
 import { TRANSACTION_TYPES, TRANSACTION_STATUS } from "@/lib/utils/constants";
@@ -75,6 +76,7 @@ export default function TransactionsPage() {
                   <th className="py-3 px-4 text-xs font-medium text-muted uppercase text-right">Amount</th>
                   <th className="py-3 px-4 text-xs font-medium text-muted uppercase">Status</th>
                   <th className="py-3 px-4 text-xs font-medium text-muted uppercase">Date</th>
+                  <th className="py-3 px-4 text-xs font-medium text-muted uppercase"></th>
                 </tr>
               </thead>
               <tbody>
@@ -110,6 +112,14 @@ export default function TransactionsPage() {
                         </span>
                       </td>
                       <td className="py-3 px-4 text-xs text-muted">{formatDate(txn.created_at)}</td>
+                      <td className="py-3 px-4">
+                        <Link
+                          href={`/receipt/${txn.reference}`}
+                          className="inline-flex items-center gap-1 text-xs text-accent hover:underline"
+                        >
+                          Receipt <ExternalLink className="w-3 h-3" />
+                        </Link>
+                      </td>
                     </tr>
                   );
                 })}
@@ -122,7 +132,7 @@ export default function TransactionsPage() {
             {filtered.map((txn) => {
               const isCredit = txn.type === "funding" || txn.type === "reversal";
               return (
-                <div key={txn.id} className="flex items-center justify-between p-3 bg-surface rounded-xl border border-border">
+                <Link key={txn.id} href={`/receipt/${txn.reference}`} className="flex items-center justify-between p-3 bg-surface rounded-xl border border-border hover:border-accent/30 transition-colors">
                   <div className="flex items-center gap-3">
                     <div
                       className={`w-8 h-8 rounded-full flex items-center justify-center ${
@@ -148,7 +158,7 @@ export default function TransactionsPage() {
                       {txn.status}
                     </span>
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>

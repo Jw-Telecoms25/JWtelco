@@ -18,6 +18,12 @@ export type TransactionStatus =
   | "reversed";
 export type LedgerDirection = "debit" | "credit";
 
+export interface NotificationPreferences {
+  sms: boolean;
+  email: boolean;
+  push: boolean;
+}
+
 export interface Profile {
   id: string;
   first_name: string;
@@ -26,6 +32,7 @@ export interface Profile {
   phone: string;
   role: UserRole;
   status: UserStatus;
+  notification_preferences: NotificationPreferences;
   created_at: string;
   updated_at: string;
 }

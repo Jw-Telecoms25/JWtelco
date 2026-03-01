@@ -13,6 +13,7 @@ import {
   Eye,
   EyeOff,
   CheckCircle,
+  Gift,
 } from "lucide-react";
 import { registerUser } from "@/lib/services/auth";
 import { useUIStore } from "@/lib/stores/ui-store";
@@ -26,6 +27,7 @@ interface FormData {
   email: string;
   password: string;
   confirmPassword: string;
+  referralCode: string;
   acceptTerms: boolean;
 }
 
@@ -69,6 +71,7 @@ export function RegisterForm() {
     email: "",
     password: "",
     confirmPassword: "",
+    referralCode: "",
     acceptTerms: false,
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -134,6 +137,7 @@ export function RegisterForm() {
         firstName: form.firstName.trim(),
         lastName: form.lastName.trim(),
         phone: form.phone.replace(/\s/g, ""),
+        referralCode: form.referralCode.trim() || undefined,
       });
 
       // If Supabase requires email confirmation, the session will be null
@@ -437,6 +441,28 @@ export function RegisterForm() {
               {errors.confirmPassword}
             </p>
           )}
+        </div>
+
+        {/* Referral Code (optional) */}
+        <div>
+          <label
+            htmlFor="reg-referral"
+            className="block text-sm font-medium text-navy mb-1.5"
+          >
+            Referral code <span className="text-muted font-normal">(optional)</span>
+          </label>
+          <div className="relative">
+            <Gift className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+            <input
+              id="reg-referral"
+              type="text"
+              value={form.referralCode}
+              onChange={(e) => update("referralCode", e.target.value.toUpperCase())}
+              placeholder="e.g. A1B2C3D4"
+              maxLength={8}
+              className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border text-sm bg-white outline-none transition-colors placeholder:text-muted/60 focus:ring-2 focus:ring-accent/20 focus:border-accent uppercase"
+            />
+          </div>
         </div>
 
         {/* Terms */}

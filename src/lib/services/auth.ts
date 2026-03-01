@@ -6,6 +6,7 @@ export async function registerUser(params: {
   firstName: string;
   lastName: string;
   phone: string;
+  referralCode?: string;
 }) {
   const supabase = createClient();
 
@@ -17,6 +18,7 @@ export async function registerUser(params: {
         first_name: params.firstName,
         last_name: params.lastName,
         phone: params.phone,
+        referred_by_code: params.referralCode || undefined,
       },
     },
   });

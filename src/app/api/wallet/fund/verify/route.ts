@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyTransaction } from "@/lib/providers/paystack";
 import { generateReference } from "@/lib/utils/reference";
 import { logger } from "@/lib/utils/logger";
+import { notifyWalletFunded } from "@/lib/notifications/dispatcher";
 
 export async function GET(request: NextRequest) {
   try {
@@ -78,6 +79,11 @@ export async function GET(request: NextRequest) {
 
     await admin.from("transactions").update({ status: "success" }).eq("id", txnId);
     await admin.from("payment_sessions").update({ status: "success" }).eq("id", session.id);
+
+    notifyWalletFunded(admin, user.id, {
+      amount: session.amount,
+      channel: paystack.data.channel || "card",
+    });
 
     return NextResponse.json({ status: "success", message: "Wallet funded successfully" });
   } catch (err) {

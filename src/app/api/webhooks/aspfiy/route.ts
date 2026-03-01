@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateReference } from "@/lib/utils/reference";
 import { logger } from "@/lib/utils/logger";
+import { notifyWalletFunded } from "@/lib/notifications/dispatcher";
 
 export async function POST(request: NextRequest) {
   try {
@@ -100,6 +101,11 @@ export async function POST(request: NextRequest) {
 
     await admin.from("transactions").update({ status: "success" }).eq("id", txnId);
     await admin.from("payment_sessions").update({ status: "success" }).eq("id", session.id);
+
+    notifyWalletFunded(admin, session.user_id, {
+      amount: amountKobo,
+      channel: "bank_transfer",
+    });
 
     await admin.from("webhook_events").insert({
       gateway: "aspfiy",

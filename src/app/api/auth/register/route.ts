@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { processReferralCode } from "@/lib/services/referrals";
 
 const NIGERIAN_PHONE_REGEX = /^0[7-9][01]\d{8}$/;
 
@@ -9,6 +11,7 @@ interface RegisterBody {
   firstName: string;
   lastName: string;
   phone: string;
+  referralCode?: string;
 }
 
 function validateInput(body: RegisterBody): string | null {
@@ -59,6 +62,12 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    // Process referral code if provided
+    if (body.referralCode?.trim() && data.user) {
+      const admin = createAdminClient();
+      await processReferralCode(admin, data.user.id, body.referralCode.trim());
     }
 
     return NextResponse.json({

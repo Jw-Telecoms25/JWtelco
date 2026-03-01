@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ProviderResponse } from "@/lib/providers/types";
 import { generateReference } from "@/lib/utils/reference";
+import { notifyPurchaseSuccess, notifyPurchaseRefunded } from "@/lib/notifications/dispatcher";
+import { creditReferralBonus } from "@/lib/services/referrals";
 
 interface PurchaseParams {
   admin: SupabaseClient;
@@ -116,6 +118,8 @@ export async function executePurchase(params: PurchaseParams): Promise<PurchaseR
     });
     await admin.from("transactions").update({ status: "success" }).eq("reference", reversalRef);
 
+    notifyPurchaseRefunded(admin, userId, { type, description, amount: price, reference });
+
     return {
       response: NextResponse.json(
         { error: `${type.replace("_", " ")} purchase failed. Your wallet has been refunded.` },
@@ -143,6 +147,18 @@ export async function executePurchase(params: PurchaseParams): Promise<PurchaseR
 
   // 6. Success
   const extra = buildSuccessResponse ? buildSuccessResponse(txnId, result) : {};
+
+  notifyPurchaseSuccess(admin, userId, {
+    type,
+    description,
+    amount: price,
+    reference,
+    token: result.data?.token as string | undefined,
+  });
+
+  // Credit referral bonus on first purchase (fire-and-forget)
+  creditReferralBonus(admin, userId).catch(() => {});
+
   return {
     response: NextResponse.json({
       success: true,

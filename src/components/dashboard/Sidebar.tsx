@@ -14,6 +14,8 @@ import {
   Receipt,
   User,
   Bell,
+  Users,
+  Layers,
   X,
 } from "lucide-react";
 import { useUIStore } from "@/lib/stores/ui-store";
@@ -32,9 +34,11 @@ const navGroups: (NavItem | "separator")[][] = [
     { label: "Electricity", href: "/buy/electricity", icon: <Zap size={20} /> },
     { label: "Cable TV", href: "/buy/cable", icon: <Tv size={20} /> },
     { label: "Exam Pins", href: "/buy/exam-pins", icon: <GraduationCap size={20} /> },
+    { label: "Bulk Airtime", href: "/buy/bulk-airtime", icon: <Layers size={20} /> },
     "separator",
     { label: "Wallet", href: "/wallet", icon: <Wallet size={20} /> },
     { label: "Transactions", href: "/transactions", icon: <Receipt size={20} /> },
+    { label: "Beneficiaries", href: "/beneficiaries", icon: <Users size={20} /> },
     "separator",
     { label: "Profile", href: "/profile", icon: <User size={20} /> },
     { label: "Notifications", href: "/notifications", icon: <Bell size={20} /> },
