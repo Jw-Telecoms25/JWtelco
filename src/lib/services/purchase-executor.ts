@@ -1,0 +1,123 @@
+import { NextResponse } from "next/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { ProviderResponse } from "@/lib/providers/types";
+import { generateReference } from "@/lib/utils/reference";
+
+interface PurchaseParams {
+  admin: SupabaseClient;
+  userId: string;
+  price: number;
+  costPrice: number;
+  type: string;
+  description: string;
+  reference: string;
+  metadata: Record<string, unknown>;
+  execute: () => Promise<ProviderResponse & { provider_used: string }>;
+  buildSuccessResponse?: (txnId: string, result: ProviderResponse & { provider_used: string }) => Record<string, unknown>;
+}
+
+interface PurchaseResult {
+  response: NextResponse;
+  txnId?: string;
+  status: "success" | "processing" | "failed";
+}
+
+export async function executePurchase(params: PurchaseParams): Promise<PurchaseResult> {
+  const { admin, userId, price, costPrice, type, description, reference, metadata, execute, buildSuccessResponse } = params;
+
+  // 1. Debit wallet
+  const { data: txnId, error: walletError } = await admin.rpc(
+    "process_wallet_transaction",
+    {
+      p_user_id: userId,
+      p_amount: price,
+      p_type: type,
+      p_description: description,
+      p_reference: reference,
+      p_metadata: metadata,
+    }
+  );
+
+  if (walletError) {
+    const msg = walletError.message.includes("Insufficient")
+      ? "Insufficient wallet balance"
+      : "Failed to process payment";
+    return {
+      response: NextResponse.json({ error: msg }, { status: 400 }),
+      status: "failed",
+    };
+  }
+
+  // 2. Call provider
+  const result = await execute();
+  const isPending = result.data?.isPending === true;
+  const profit = result.success ? price - costPrice : 0;
+
+  // 3. Update transaction
+  await admin
+    .from("transactions")
+    .update({
+      status: result.success ? "success" : isPending ? "processing" : "failed",
+      profit,
+      metadata: { ...metadata, provider_used: result.provider_used, providerResponse: result },
+    })
+    .eq("id", txnId);
+
+  // 4. Failed (not pending) → reverse wallet
+  if (!result.success && !isPending) {
+    const reversalRef = generateReference("REV");
+    await admin.rpc("process_wallet_transaction", {
+      p_user_id: userId,
+      p_amount: price,
+      p_type: "reversal",
+      p_description: `Reversal for failed ${type}: ${reference}`,
+      p_reference: reversalRef,
+      p_metadata: { original_reference: reference, reason: "provider_failure" },
+    });
+    await admin.from("transactions").update({ status: "success" }).eq("reference", reversalRef);
+
+    return {
+      response: NextResponse.json(
+        { error: `${type.replace("_", " ")} purchase failed. Your wallet has been refunded.` },
+        { status: 502 }
+      ),
+      txnId,
+      status: "failed",
+    };
+  }
+
+  // 5. Pending
+  if (isPending) {
+    return {
+      response: NextResponse.json({
+        success: true,
+        message: "Transaction is being processed",
+        reference,
+        transactionId: txnId,
+        status: "processing",
+      }),
+      txnId,
+      status: "processing",
+    };
+  }
+
+  // 6. Success
+  const extra = buildSuccessResponse ? buildSuccessResponse(txnId, result) : {};
+  return {
+    response: NextResponse.json({
+      success: true,
+      message: result.message,
+      reference,
+      transactionId: txnId,
+      ...extra,
+    }),
+    txnId,
+    status: "success",
+  };
+}
+
+export function getRolePrice(plan: { user_price: number; agent_price: number; vendor_price: number }, role: string): number {
+  if (role === "agent") return plan.agent_price;
+  if (role === "admin" || role === "super_admin") return plan.vendor_price;
+  return plan.user_price;
+}
