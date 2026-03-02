@@ -64,9 +64,10 @@ export async function POST(request: NextRequest) {
     if (err instanceof AccountBlockedError) {
       return NextResponse.json({ error: err.message }, { status: 403 });
     }
+    // Never leak internal error messages to client
     logger.error({ error: err instanceof Error ? err.message : "Unknown" }, "Fund initialization error");
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Failed to initialize payment" },
+      { error: "Failed to initialize payment" },
       { status: 500 }
     );
   }

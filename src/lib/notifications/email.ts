@@ -1,13 +1,10 @@
 import { Resend } from "resend";
+import { formatNaira } from "@/lib/utils/format";
 import { logger } from "@/lib/utils/logger";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 const FROM = "JWTelecoms <onboarding@resend.dev>";
-
-function formatNaira(kobo: number): string {
-  return `₦${(kobo / 100).toLocaleString("en-NG", { minimumFractionDigits: 2 })}`;
-}
 
 function baseTemplate(title: string, body: string): string {
   return `<!DOCTYPE html>

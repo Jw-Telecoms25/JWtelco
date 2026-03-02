@@ -18,7 +18,6 @@ export default function ProfilePage() {
   const [phone, setPhone] = useState(user?.phone || "");
   const [isSaving, setIsSaving] = useState(false);
 
-  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -76,7 +75,6 @@ export default function ProfilePage() {
       });
       if (error) throw error;
 
-      setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
       addToast({ type: "success", title: "Password changed successfully" });

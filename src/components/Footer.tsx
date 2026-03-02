@@ -4,27 +4,21 @@ import { Zap, Phone, Mail, MapPin } from "lucide-react";
 
 const footerLinks = {
   Services: [
-    { label: "Buy Airtime", href: "#" },
-    { label: "Buy Data", href: "#" },
-    { label: "Pay Bills", href: "#" },
-    { label: "Cable TV", href: "#" },
-    { label: "Education", href: "#" },
-    { label: "NIN Services", href: "#" },
+    { label: "Buy Airtime", href: "/buy/airtime" },
+    { label: "Buy Data", href: "/buy/data" },
+    { label: "Electricity", href: "/buy/electricity" },
+    { label: "Cable TV", href: "/buy/cable" },
+    { label: "Exam Pins", href: "/buy/exam-pins" },
+    { label: "Bulk Airtime", href: "/buy/bulk-airtime" },
   ],
   Company: [
-    { label: "About Us", href: "#" },
     { label: "Pricing", href: "#pricing" },
-    { label: "Become a Reseller", href: "#" },
-    { label: "API for Developers", href: "#" },
-    { label: "Terms of Service", href: "#" },
-    { label: "Privacy Policy", href: "#" },
+    { label: "Terms of Service", href: "/terms" },
+    { label: "Privacy Policy", href: "/privacy" },
   ],
   Support: [
     { label: "Help Center", href: "#faq" },
-    { label: "Live Chat", href: "#" },
-    { label: "WhatsApp", href: "#" },
-    { label: "Report an Issue", href: "#" },
-    { label: "Status Page", href: "#" },
+    { label: "Email Support", href: "mailto:support@jwtelecoms.com.ng" },
   ],
 };
 
@@ -45,7 +39,7 @@ export default function Footer() {
               </p>
             </div>
             <a
-              href="#"
+              href="/register"
               className="px-7 py-4 bg-navy text-white font-bold rounded-2xl hover:bg-navy-light transition-all hover:shadow-xl flex-shrink-0"
             >
               Create Free Account

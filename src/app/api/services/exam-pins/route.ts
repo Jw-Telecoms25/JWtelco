@@ -7,6 +7,7 @@ import { assertActiveUser, AccountBlockedError } from "@/lib/utils/guards";
 import { getRolePrice } from "@/lib/services/purchase-executor";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { logger } from "@/lib/utils/logger";
+import { notifyPurchaseSuccess, notifyPurchaseRefunded } from "@/lib/notifications/dispatcher";
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,11 +36,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Quantity must be 1-5" }, { status: 400 });
     }
 
+    // Filter by service to avoid collisions with telecom networks
     const { data: plans } = await admin
       .from("pricing")
-      .select("*")
+      .select("*, services!inner(slug)")
       .eq("network", examType)
-      .eq("enabled", true);
+      .eq("enabled", true)
+      .eq("services.slug", "exam-pins");
 
     if (!plans || plans.length === 0) {
       return NextResponse.json({ error: "Exam pin not available" }, { status: 404 });
@@ -132,6 +135,13 @@ export async function POST(request: NextRequest) {
       });
       await admin.from("transactions").update({ status: "success" }).eq("reference", reversalRef);
 
+      notifyPurchaseRefunded(admin, user.id, {
+        type: "exam_pin",
+        description: `${examType.toUpperCase()} ${plan.plan_name} x${quantity}`,
+        amount: totalPrice,
+        reference,
+      });
+
       return NextResponse.json(
         { error: "Exam pin purchase failed. Your wallet has been refunded." },
         { status: 502 }
@@ -147,6 +157,13 @@ export async function POST(request: NextRequest) {
         status: "processing",
       });
     }
+
+    notifyPurchaseSuccess(admin, user.id, {
+      type: "exam_pin",
+      description: `${examType.toUpperCase()} ${plan.plan_name} x${quantity}`,
+      amount: totalPrice,
+      reference,
+    });
 
     return NextResponse.json({
       success: true,

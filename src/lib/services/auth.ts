@@ -45,8 +45,13 @@ export async function loginUser(params: {
 export async function resetPassword(email: string) {
   const supabase = createClient();
 
+  // Safe check for SSR; window may not exist
+  const origin = typeof window !== "undefined"
+    ? window.location.origin
+    : process.env.NEXT_PUBLIC_SITE_URL || "https://jwtelecoms.com.ng";
+
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
+    redirectTo: `${origin}/auth/callback?type=recovery`,
   });
 
   if (error) throw error;

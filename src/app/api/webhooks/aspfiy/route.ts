@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { generateReference } from "@/lib/utils/reference";
 import { logger } from "@/lib/utils/logger";
 import { notifyWalletFunded } from "@/lib/notifications/dispatcher";
 
@@ -8,6 +7,23 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const admin = createAdminClient();
+
+    // Verify webhook signature
+    const aspfiySecret = process.env.ASPFIY_WEBHOOK_SECRET;
+    if (aspfiySecret) {
+      const incomingSecret =
+        request.headers.get("x-aspfiy-secret") ||
+        request.headers.get("authorization")?.replace("Bearer ", "");
+
+      if (incomingSecret !== aspfiySecret) {
+        logger.warn({}, "Aspfiy webhook: invalid or missing signature");
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+    } else {
+      logger.warn({}, "Aspfiy webhook: ASPFIY_WEBHOOK_SECRET not configured — accepting all requests");
+    }
+
+    const signatureValid = !!aspfiySecret;
 
     const {
       reference,
@@ -18,24 +34,25 @@ export async function POST(request: NextRequest) {
       sessionId,
     } = body;
 
+    const eventRef = sessionId || reference || `aspfiy-${Date.now()}`;
+
     if (status !== "successful" && status !== "success") {
       await admin.from("webhook_events").insert({
         gateway: "aspfiy",
         event_type: status || "unknown",
+        event_id: eventRef,
         payload: body,
-        reference: reference || sessionId || "unknown",
+        signature_valid: signatureValid,
         processed: false,
       });
       return NextResponse.json({ received: true });
     }
 
-    const eventRef = sessionId || reference || "";
-
     const { data: existing } = await admin
       .from("webhook_events")
       .select("id")
       .eq("gateway", "aspfiy")
-      .eq("reference", eventRef)
+      .eq("event_id", eventRef)
       .eq("processed", true)
       .limit(1)
       .single();
@@ -62,8 +79,9 @@ export async function POST(request: NextRequest) {
       await admin.from("webhook_events").insert({
         gateway: "aspfiy",
         event_type: "charge.success",
+        event_id: eventRef,
         payload: body,
-        reference: eventRef,
+        signature_valid: signatureValid,
         processed: false,
       });
       return NextResponse.json({ received: true });
@@ -74,7 +92,9 @@ export async function POST(request: NextRequest) {
     }
 
     const amountKobo = Math.round((amount || 0) * 100);
-    const fundRef = generateReference("FUND");
+
+    // Deterministic reference to prevent double-credit
+    const fundRef = `FUND-ASPFIY-${eventRef}`;
 
     const { data: txnId, error: walletError } = await admin.rpc(
       "process_wallet_transaction",
@@ -95,7 +115,11 @@ export async function POST(request: NextRequest) {
     );
 
     if (walletError) {
-      logger.error({ error: walletError instanceof Error ? walletError.message : "Unknown" }, "Aspfiy webhook: wallet credit failed");
+      // Supabase errors are PostgrestError objects, not Error instances
+      if (walletError.message?.includes("duplicate")) {
+        return NextResponse.json({ received: true, message: "Already processed" });
+      }
+      logger.error({ error: walletError.message }, "Aspfiy webhook: wallet credit failed");
       return NextResponse.json({ error: "Credit failed" }, { status: 500 });
     }
 
@@ -107,12 +131,15 @@ export async function POST(request: NextRequest) {
       channel: "bank_transfer",
     });
 
+    // Audit trail
     await admin.from("webhook_events").insert({
       gateway: "aspfiy",
       event_type: "charge.success",
+      event_id: eventRef,
       payload: body,
-      reference: eventRef,
+      signature_valid: signatureValid,
       processed: true,
+      processed_at: new Date().toISOString(),
     });
 
     return NextResponse.json({ received: true });

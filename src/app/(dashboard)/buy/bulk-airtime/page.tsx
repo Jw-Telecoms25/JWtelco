@@ -168,13 +168,21 @@ export default function BulkAirtimePage() {
               <Trash2 size={16} />
             </button>
 
-            {results && results[idx] && (
-              <span className={`text-xs px-2 py-1 rounded-full flex-shrink-0 ${
-                results[idx].status === "success" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
-              }`}>
-                {results[idx].status}
-              </span>
-            )}
+            {/* Map results by matching the row to validRows index */}
+            {results && (() => {
+              const validIdx = validRows.findIndex(
+                (vr) => vr.phone === row.phone && vr.network === row.network && vr.amount === row.amount
+              );
+              const result = validIdx >= 0 ? results[validIdx] : undefined;
+              if (!result) return null;
+              return (
+                <span className={`text-xs px-2 py-1 rounded-full flex-shrink-0 ${
+                  result.status === "success" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
+                }`}>
+                  {result.status}
+                </span>
+              );
+            })()}
           </div>
         ))}
 

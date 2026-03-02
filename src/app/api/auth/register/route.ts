@@ -70,9 +70,10 @@ export async function POST(request: NextRequest) {
       await processReferralCode(admin, data.user.id, body.referralCode.trim());
     }
 
+    // Return minimal response; never expose internal auth metadata
     return NextResponse.json({
-      user: data.user,
-      session: data.session,
+      message: data.session ? "Registration successful" : "Check your email to confirm your account",
+      userId: data.user?.id,
     });
   } catch {
     return NextResponse.json(

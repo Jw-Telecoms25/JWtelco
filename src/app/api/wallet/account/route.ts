@@ -68,11 +68,12 @@ export async function GET() {
       })
       .eq("id", user.id);
 
+    // Virtual accounts receive variable amounts; use sentinel since CHECK requires > 0
     await admin.from("payment_sessions").insert({
       user_id: user.id,
       gateway: "aspfiy",
       gateway_reference: account.accountNumber,
-      amount: 0,
+      amount: 1,
       status: "pending",
     });
 
@@ -85,9 +86,10 @@ export async function GET() {
     if (err instanceof AccountBlockedError) {
       return NextResponse.json({ error: err.message }, { status: 403 });
     }
+    // Never leak internal error messages to client
     logger.error({ error: err instanceof Error ? err.message : "Unknown" }, "Virtual account error");
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Failed to create virtual account" },
+      { error: "Failed to create virtual account" },
       { status: 500 }
     );
   }

@@ -44,32 +44,8 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Dashboard pages — redirect unauthenticated users to login
-  if (!user && pathname.startsWith("/dashboard")) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
-  }
-  if (!user && pathname.startsWith("/wallet")) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
-  }
-  if (!user && pathname.startsWith("/transactions")) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
-  }
-  if (!user && pathname.startsWith("/buy")) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
-  }
-  if (!user && pathname.startsWith("/profile")) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
-  }
-  if (!user && pathname.startsWith("/notifications")) {
+  const protectedPrefixes = ["/dashboard", "/wallet", "/transactions", "/buy", "/profile", "/notifications", "/beneficiaries"];
+  if (!user && protectedPrefixes.some((p) => pathname.startsWith(p))) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

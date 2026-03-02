@@ -8,6 +8,7 @@ import { assertActiveUser, AccountBlockedError } from "@/lib/utils/guards";
 import { DISCOS } from "@/lib/utils/constants";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { logger } from "@/lib/utils/logger";
+import { notifyPurchaseSuccess, notifyPurchaseRefunded } from "@/lib/notifications/dispatcher";
 
 const VALID_DISCO_IDS = DISCOS.map(d => d.id);
 
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
     if (!meterType || !["prepaid", "postpaid"].includes(meterType)) {
       return NextResponse.json({ error: "Invalid meter type" }, { status: 400 });
     }
-    if (!amount || typeof amount !== "number" || amount < 100_00 || amount > 50_000_00) {
+    if (!amount || typeof amount !== "number" || amount < 10000 || amount > 5000000) {
       return NextResponse.json({ error: "Amount must be between ₦100 and ₦50,000" }, { status: 400 });
     }
 
@@ -121,6 +122,14 @@ export async function POST(request: NextRequest) {
       });
       await admin.from("transactions").update({ status: "success" }).eq("reference", reversalRef);
 
+      // Notify user of refund
+      notifyPurchaseRefunded(admin, user.id, {
+        type: "electricity",
+        description: `Electricity ${meterType} - ${disco} - Meter: ${meterNumber}`,
+        amount,
+        reference,
+      });
+
       return NextResponse.json(
         { error: "Electricity purchase failed. Your wallet has been refunded." },
         { status: 502 }
@@ -136,6 +145,15 @@ export async function POST(request: NextRequest) {
         transactionId: txnId,
       });
     }
+
+    // Notify user of success
+    notifyPurchaseSuccess(admin, user.id, {
+      type: "electricity",
+      description: `Electricity ${meterType} - ${disco} - Meter: ${meterNumber}`,
+      amount,
+      reference,
+      token: result.data?.token as string | undefined,
+    });
 
     return NextResponse.json({
       success: true,

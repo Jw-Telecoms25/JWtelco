@@ -39,11 +39,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
     }
 
+    // Filter by service to prevent plan_code collisions
     const { data: plan } = await admin
       .from("pricing")
-      .select("*")
+      .select("*, services!inner(slug)")
       .eq("plan_code", planCode)
       .eq("enabled", true)
+      .eq("services.slug", "airtime")
       .single();
 
     if (!plan) {

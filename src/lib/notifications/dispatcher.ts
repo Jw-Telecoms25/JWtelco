@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendPurchaseSuccess, sendPurchaseRefunded, sendWalletFunded } from "./email";
+import { formatNaira } from "@/lib/utils/format";
 import { logger } from "@/lib/utils/logger";
 
 interface UserInfo {
@@ -97,6 +98,3 @@ export function notifyWalletFunded(
   })();
 }
 
-function formatNaira(kobo: number): string {
-  return `₦${(kobo / 100).toLocaleString("en-NG", { minimumFractionDigits: 2 })}`;
-}

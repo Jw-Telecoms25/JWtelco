@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyTransaction } from "@/lib/providers/paystack";
-import { generateReference } from "@/lib/utils/reference";
 import { logger } from "@/lib/utils/logger";
 import { notifyWalletFunded } from "@/lib/notifications/dispatcher";
 
@@ -52,7 +51,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Amount mismatch" }, { status: 400 });
     }
 
-    const fundRef = generateReference("FUND");
+    // Deterministic reference to prevent double-credit on concurrent calls
+    const fundRef = `FUND-PSK-${reference}`;
     const { data: txnId, error: walletError } = await admin.rpc(
       "process_wallet_transaction",
       {
@@ -70,10 +70,11 @@ export async function GET(request: NextRequest) {
     );
 
     if (walletError) {
-      if (walletError.message.includes("duplicate")) {
+      // Supabase errors are PostgrestError objects, not Error instances
+      if (walletError.message?.includes("duplicate")) {
         return NextResponse.json({ status: "success", message: "Wallet funded successfully" });
       }
-      logger.error({ error: walletError instanceof Error ? walletError.message : "Unknown" }, "Fund verify: wallet credit failed");
+      logger.error({ error: walletError.message }, "Fund verify: wallet credit failed");
       return NextResponse.json({ error: "Failed to credit wallet" }, { status: 500 });
     }
 

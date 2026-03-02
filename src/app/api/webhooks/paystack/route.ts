@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyWebhookSignature } from "@/lib/providers/paystack";
-import { generateReference } from "@/lib/utils/reference";
 import { logger } from "@/lib/utils/logger";
 
 export async function POST(request: NextRequest) {
@@ -18,7 +17,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ received: true });
   }
 
-  const { reference, amount, customer, metadata } = event.data;
+  const { reference, amount, customer } = event.data;
   const admin = createAdminClient();
 
   const { data: session } = await admin
@@ -46,7 +45,9 @@ export async function POST(request: NextRequest) {
   }
 
   const userId = session.user_id;
-  const fundRef = generateReference("FUND");
+
+  // Deterministic reference to prevent double-credit
+  const fundRef = `FUND-PSK-${reference}`;
 
   const { data: txnId, error: walletError } = await admin.rpc(
     "process_wallet_transaction",
@@ -66,7 +67,11 @@ export async function POST(request: NextRequest) {
   );
 
   if (walletError) {
-    logger.error({ error: walletError instanceof Error ? walletError.message : "Unknown" }, "Paystack webhook: wallet credit failed");
+    // Supabase errors are PostgrestError objects, not Error instances
+    if (walletError.message?.includes("duplicate")) {
+      return NextResponse.json({ received: true, message: "Already processed" });
+    }
+    logger.error({ error: walletError.message }, "Paystack webhook: wallet credit failed");
     return NextResponse.json({ error: "Credit failed" }, { status: 500 });
   }
 
@@ -80,12 +85,15 @@ export async function POST(request: NextRequest) {
     .update({ status: "success" })
     .eq("id", session.id);
 
+  // Audit trail
   await admin.from("webhook_events").insert({
     gateway: "paystack",
     event_type: event.event,
+    event_id: reference,
     payload: event.data,
-    reference,
+    signature_valid: true,
     processed: true,
+    processed_at: new Date().toISOString(),
   });
 
   return NextResponse.json({ received: true });

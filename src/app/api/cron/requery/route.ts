@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { vtpassProvider } from "@/lib/providers/vtpass";
 import { maskawasubProvider } from "@/lib/providers/vtu-reseller";
 import { generateReference } from "@/lib/utils/reference";
 import { logger } from "@/lib/utils/logger";
