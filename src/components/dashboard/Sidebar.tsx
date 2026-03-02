@@ -17,8 +17,10 @@ import {
   Users,
   Layers,
   X,
+  Shield,
 } from "lucide-react";
 import { useUIStore } from "@/lib/stores/ui-store";
+import { useAuth } from "@/lib/hooks/use-auth";
 
 interface NavItem {
   label: string;
@@ -49,6 +51,7 @@ const navItems = navGroups[0];
 
 function NavContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
+  const { isAdmin } = useAuth();
 
   return (
     <div className="flex flex-col h-full">
@@ -95,6 +98,22 @@ function NavContent({ onNavigate }: { onNavigate?: () => void }) {
           );
         })}
       </nav>
+
+      {/* Admin link — only visible for admin/super_admin */}
+      {isAdmin && (
+        <div className="px-3 pb-4">
+          <div className="border-t border-white/10 pt-3">
+            <Link
+              href="/admin"
+              onClick={onNavigate}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 transition-colors"
+            >
+              <Shield size={20} />
+              <span>Admin Panel</span>
+            </Link>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

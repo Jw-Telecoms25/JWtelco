@@ -2,6 +2,31 @@ import { createClient } from "@/lib/supabase/server";
 import { NextResponse, type NextRequest } from "next/server";
 
 /**
+ * Determine the post-auth redirect based on user role.
+ * Admins go to /admin, regular users go to /dashboard.
+ */
+async function getRedirectForUser(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  fallback: string
+): Promise<string> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return fallback;
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  if (profile && ["admin", "super_admin"].includes(profile.role)) {
+    return "/admin";
+  }
+  return fallback;
+}
+
+/**
  * Auth callback handler — Supabase redirects here after email confirmation,
  * password recovery, and magic link clicks.
  *
@@ -29,7 +54,8 @@ export async function GET(request: NextRequest) {
       if (type === "recovery") {
         return NextResponse.redirect(new URL("/reset-password", origin));
       }
-      return NextResponse.redirect(new URL(next, origin));
+      const dest = await getRedirectForUser(supabase, next);
+      return NextResponse.redirect(new URL(dest, origin));
     }
   }
 
@@ -40,7 +66,8 @@ export async function GET(request: NextRequest) {
       if (type === "recovery") {
         return NextResponse.redirect(new URL("/reset-password", origin));
       }
-      return NextResponse.redirect(new URL(next, origin));
+      const dest = await getRedirectForUser(supabase, next);
+      return NextResponse.redirect(new URL(dest, origin));
     }
   }
 
