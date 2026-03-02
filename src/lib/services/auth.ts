@@ -10,10 +10,15 @@ export async function registerUser(params: {
 }) {
   const supabase = createClient();
 
+  const origin = typeof window !== "undefined"
+    ? window.location.origin
+    : process.env.NEXT_PUBLIC_SITE_URL || "https://jwtelecoms.com.ng";
+
   const { data, error } = await supabase.auth.signUp({
     email: params.email,
     password: params.password,
     options: {
+      emailRedirectTo: `${origin}/auth/callback`,
       data: {
         first_name: params.firstName,
         last_name: params.lastName,

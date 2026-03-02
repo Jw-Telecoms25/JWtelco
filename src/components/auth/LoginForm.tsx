@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Mail, Lock, Phone, Loader2, Eye, EyeOff } from "lucide-react";
@@ -16,6 +16,24 @@ interface FormErrors {
   email?: string;
   password?: string;
   phone?: string;
+}
+
+function LoginErrorHandler() {
+  const searchParams = useSearchParams();
+  const addToast = useUIStore((s) => s.addToast);
+
+  useEffect(() => {
+    const error = searchParams.get("error");
+    if (error === "invalid_link") {
+      addToast({
+        type: "error",
+        title: "Link expired or invalid",
+        message: "Please request a new confirmation email or try logging in.",
+      });
+    }
+  }, [searchParams, addToast]);
+
+  return null;
 }
 
 export function LoginForm() {
@@ -105,6 +123,9 @@ export function LoginForm() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
+      <Suspense>
+        <LoginErrorHandler />
+      </Suspense>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-navy">Welcome back</h1>
         <p className="text-muted mt-1 text-sm">

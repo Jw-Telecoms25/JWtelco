@@ -14,8 +14,10 @@ import {
   EyeOff,
   CheckCircle,
   Gift,
+  RefreshCw,
 } from "lucide-react";
 import { registerUser } from "@/lib/services/auth";
+import { createClient } from "@/lib/supabase/client";
 import { useUIStore } from "@/lib/stores/ui-store";
 
 const NIGERIAN_PHONE_REGEX = /^0[7-9][01]\d{8}$/;
@@ -78,6 +80,8 @@ export function RegisterForm() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   function update<K extends keyof FormData>(key: K, value: FormData[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -160,6 +164,36 @@ export function RegisterForm() {
     }
   }
 
+  async function handleResend() {
+    if (resending || resendCooldown > 0) return;
+    setResending(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: form.email,
+      });
+      if (error) throw error;
+      addToast({ type: "success", title: "Confirmation email resent" });
+      setResendCooldown(60);
+      const interval = setInterval(() => {
+        setResendCooldown((c) => {
+          if (c <= 1) {
+            clearInterval(interval);
+            return 0;
+          }
+          return c - 1;
+        });
+      }, 1000);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to resend email";
+      addToast({ type: "error", title: "Resend failed", message });
+    } finally {
+      setResending(false);
+    }
+  }
+
   if (success) {
     return (
       <motion.div
@@ -172,10 +206,28 @@ export function RegisterForm() {
           <CheckCircle className="w-8 h-8 text-emerald" />
         </div>
         <h2 className="text-xl font-bold text-navy mb-2">Check your email</h2>
-        <p className="text-sm text-muted mb-6">
+        <p className="text-sm text-muted mb-4">
           We sent a confirmation link to{" "}
           <span className="font-medium text-navy">{form.email}</span>. Click the
           link to activate your account.
+        </p>
+        <button
+          type="button"
+          onClick={handleResend}
+          disabled={resending || resendCooldown > 0}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm font-medium text-navy hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-4"
+        >
+          {resending ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <RefreshCw className="w-4 h-4" />
+          )}
+          {resendCooldown > 0
+            ? `Resend in ${resendCooldown}s`
+            : "Resend confirmation email"}
+        </button>
+        <p className="text-xs text-muted mb-4">
+          Didn&apos;t receive the email? Check your spam folder.
         </p>
         <Link
           href="/login"
