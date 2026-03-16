@@ -30,7 +30,7 @@ export default function HowItWorks() {
   const inView = useInView(ref, { once: true, margin: "-100px" });
 
   return (
-    <section id="how-it-works" className="py-24 sm:py-32 bg-navy relative overflow-hidden noise-bg">
+    <section id="how-it-works" className="py-16 sm:py-24 bg-navy relative overflow-hidden noise-bg">
       <div className="absolute top-0 left-1/2 w-[800px] h-[400px] bg-accent/5 rounded-full blur-[120px] -translate-x-1/2 -translate-y-1/2" />
 
       <div className="relative z-10 mx-auto max-w-7xl px-6" ref={ref}>

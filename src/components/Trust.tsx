@@ -42,7 +42,7 @@ export default function Trust() {
   const inView = useInView(ref, { once: true, margin: "-100px" });
 
   return (
-    <section className="py-24 sm:py-32 relative overflow-hidden">
+    <section className="py-16 sm:py-24 relative overflow-hidden">
       <div className="mx-auto max-w-7xl px-6" ref={ref}>
         <div className="grid lg:grid-cols-[1fr_1.5fr] gap-16 items-start">
           {/* Left — sticky heading */}

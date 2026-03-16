@@ -18,9 +18,11 @@ import {
   Layers,
   X,
   Shield,
+  Home,
 } from "lucide-react";
 import { useUIStore } from "@/lib/stores/ui-store";
 import { useAuth } from "@/lib/hooks/use-auth";
+import { JWGlobe } from "@/components/ui/JWLogo";
 
 interface NavItem {
   label: string;
@@ -28,26 +30,22 @@ interface NavItem {
   icon: React.ReactNode;
 }
 
-const navGroups: (NavItem | "separator")[][] = [
-  [
-    { label: "Dashboard", href: "/dashboard", icon: <LayoutDashboard size={20} /> },
-    { label: "Buy Airtime", href: "/buy/airtime", icon: <Phone size={20} /> },
-    { label: "Buy Data", href: "/buy/data", icon: <Wifi size={20} /> },
-    { label: "Electricity", href: "/buy/electricity", icon: <Zap size={20} /> },
-    { label: "Cable TV", href: "/buy/cable", icon: <Tv size={20} /> },
-    { label: "Exam Pins", href: "/buy/exam-pins", icon: <GraduationCap size={20} /> },
-    { label: "Bulk Airtime", href: "/buy/bulk-airtime", icon: <Layers size={20} /> },
-    "separator",
-    { label: "Wallet", href: "/wallet", icon: <Wallet size={20} /> },
-    { label: "Transactions", href: "/transactions", icon: <Receipt size={20} /> },
-    { label: "Beneficiaries", href: "/beneficiaries", icon: <Users size={20} /> },
-    "separator",
-    { label: "Profile", href: "/profile", icon: <User size={20} /> },
-    { label: "Notifications", href: "/notifications", icon: <Bell size={20} /> },
-  ],
+const navItems: (NavItem | "separator")[] = [
+  { label: "Dashboard", href: "/dashboard", icon: <LayoutDashboard size={18} /> },
+  { label: "Buy Airtime", href: "/buy/airtime", icon: <Phone size={18} /> },
+  { label: "Buy Data", href: "/buy/data", icon: <Wifi size={18} /> },
+  { label: "Electricity", href: "/buy/electricity", icon: <Zap size={18} /> },
+  { label: "Cable TV", href: "/buy/cable", icon: <Tv size={18} /> },
+  { label: "Exam Pins", href: "/buy/exam-pins", icon: <GraduationCap size={18} /> },
+  { label: "Bulk Airtime", href: "/buy/bulk-airtime", icon: <Layers size={18} /> },
+  "separator",
+  { label: "Wallet", href: "/wallet", icon: <Wallet size={18} /> },
+  { label: "Transactions", href: "/transactions", icon: <Receipt size={18} /> },
+  { label: "Beneficiaries", href: "/beneficiaries", icon: <Users size={18} /> },
+  "separator",
+  { label: "Profile", href: "/profile", icon: <User size={18} /> },
+  { label: "Notifications", href: "/notifications", icon: <Bell size={18} /> },
 ];
-
-const navItems = navGroups[0];
 
 function NavContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
@@ -59,20 +57,21 @@ function NavContent({ onNavigate }: { onNavigate?: () => void }) {
       <div className="px-4 py-5 border-b border-white/10">
         <Link
           href="/dashboard"
-          className="text-xl font-bold text-white tracking-tight"
+          className="flex items-center gap-2.5"
           onClick={onNavigate}
         >
-          JW<span className="text-accent">Telecoms</span>
+          <JWGlobe size={30} />
+          <span className="font-bold text-base text-white tracking-tight">
+            JW<span className="text-accent">Telecoms</span>
+          </span>
         </Link>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
         {navItems.map((item, i) => {
           if (item === "separator") {
-            return (
-              <div key={`sep-${i}`} className="my-3 border-t border-white/10" />
-            );
+            return <div key={`sep-${i}`} className="my-2 border-t border-white/10" />;
           }
 
           const isActive = pathname === item.href;
@@ -84,36 +83,47 @@ function NavContent({ onNavigate }: { onNavigate?: () => void }) {
               onClick={onNavigate}
               className={`
                 flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
-                transition-colors
+                transition-all duration-150
                 ${
                   isActive
-                    ? "bg-accent text-white"
-                    : "text-gray-300 hover:bg-white/10 hover:text-white"
+                    ? "bg-accent/20 text-accent border border-accent/20"
+                    : "text-gray-400 hover:bg-white/8 hover:text-white"
                 }
               `}
             >
-              {item.icon}
+              <span className={isActive ? "text-accent" : "text-gray-500"}>
+                {item.icon}
+              </span>
               <span>{item.label}</span>
             </Link>
           );
         })}
       </nav>
 
-      {/* Admin link — only visible for admin/super_admin */}
-      {isAdmin && (
-        <div className="px-3 pb-4">
-          <div className="border-t border-white/10 pt-3">
-            <Link
-              href="/admin"
-              onClick={onNavigate}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 transition-colors"
-            >
-              <Shield size={20} />
-              <span>Admin Panel</span>
-            </Link>
-          </div>
-        </div>
-      )}
+      {/* Footer links */}
+      <div className="px-3 pb-4 space-y-1 border-t border-white/10 pt-3">
+        {/* Home link */}
+        <Link
+          href="/"
+          onClick={onNavigate}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-400 hover:bg-white/8 hover:text-white transition-all"
+        >
+          <Home size={18} className="text-gray-500" />
+          <span>Homepage</span>
+        </Link>
+
+        {/* Admin link — only visible for admin/super_admin */}
+        {isAdmin && (
+          <Link
+            href="/admin"
+            onClick={onNavigate}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 transition-all border border-amber-500/10"
+          >
+            <Shield size={18} />
+            <span>Admin Panel</span>
+          </Link>
+        )}
+      </div>
     </div>
   );
 }
@@ -124,7 +134,7 @@ export function Sidebar() {
   return (
     <>
       {/* Desktop sidebar - fixed */}
-      <aside className="hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:left-0 lg:w-64 bg-navy">
+      <aside className="hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:left-0 lg:w-64 bg-navy border-r border-white/5">
         <NavContent />
       </aside>
 
@@ -138,7 +148,7 @@ export function Sidebar() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+              className="fixed inset-0 z-40 bg-black/60 lg:hidden backdrop-blur-sm"
               onClick={() => setSidebarOpen(false)}
             />
 
@@ -147,13 +157,13 @@ export function Sidebar() {
               initial={{ x: "-100%" }}
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="fixed inset-y-0 left-0 z-50 w-64 bg-navy lg:hidden"
+              transition={{ type: "spring", damping: 28, stiffness: 320 }}
+              className="fixed inset-y-0 left-0 z-50 w-72 bg-navy lg:hidden shadow-2xl"
             >
               {/* Close button */}
               <button
                 onClick={() => setSidebarOpen(false)}
-                className="absolute top-4 right-4 p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+                className="absolute top-4 right-4 p-1.5 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-colors z-10"
                 aria-label="Close menu"
               >
                 <X size={20} />

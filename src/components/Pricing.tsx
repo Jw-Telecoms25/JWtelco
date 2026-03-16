@@ -53,7 +53,7 @@ export default function Pricing() {
   const [activeNetwork, setActiveNetwork] = useState("MTN");
 
   return (
-    <section id="pricing" className="py-24 sm:py-32 bg-surface-elevated relative">
+    <section id="pricing" className="py-16 sm:py-24 bg-surface-elevated relative">
       <div className="mx-auto max-w-7xl px-6" ref={ref}>
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 mb-12">
           <div>

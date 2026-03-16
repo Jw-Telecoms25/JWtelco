@@ -2,38 +2,62 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Phone, Wifi, Zap, Tv, GraduationCap } from "lucide-react";
+import { Phone, Wifi, Zap, Tv, GraduationCap, Layers } from "lucide-react";
 
 const services = [
   {
     label: "Airtime",
     href: "/buy/airtime",
     icon: Phone,
-    color: "bg-blue-50 text-blue-600",
+    bg: "bg-blue-500/10",
+    fg: "text-blue-400",
+    border: "border-blue-500/20",
+    glow: "group-hover:shadow-blue-500/20",
   },
   {
     label: "Data",
     href: "/buy/data",
     icon: Wifi,
-    color: "bg-purple-50 text-purple-600",
+    bg: "bg-purple-500/10",
+    fg: "text-purple-400",
+    border: "border-purple-500/20",
+    glow: "group-hover:shadow-purple-500/20",
   },
   {
     label: "Electricity",
     href: "/buy/electricity",
     icon: Zap,
-    color: "bg-amber-50 text-amber-600",
+    bg: "bg-amber-500/10",
+    fg: "text-amber-400",
+    border: "border-amber-500/20",
+    glow: "group-hover:shadow-amber-500/20",
   },
   {
     label: "Cable TV",
     href: "/buy/cable",
     icon: Tv,
-    color: "bg-emerald-50 text-emerald-600",
+    bg: "bg-emerald-500/10",
+    fg: "text-emerald-400",
+    border: "border-emerald-500/20",
+    glow: "group-hover:shadow-emerald-500/20",
   },
   {
     label: "Exam Pins",
     href: "/buy/exam-pins",
     icon: GraduationCap,
-    color: "bg-rose-50 text-rose-600",
+    bg: "bg-rose-500/10",
+    fg: "text-rose-400",
+    border: "border-rose-500/20",
+    glow: "group-hover:shadow-rose-500/20",
+  },
+  {
+    label: "Bulk",
+    href: "/buy/bulk-airtime",
+    icon: Layers,
+    bg: "bg-cyan-500/10",
+    fg: "text-cyan-400",
+    border: "border-cyan-500/20",
+    glow: "group-hover:shadow-cyan-500/20",
   },
 ];
 
@@ -41,35 +65,39 @@ const container = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
-    transition: { staggerChildren: 0.06 },
+    transition: { staggerChildren: 0.05 },
   },
 };
 
 const item = {
-  hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0 },
+  hidden: { opacity: 0, y: 10 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.3 } },
 };
 
 export function QuickBuy() {
   return (
     <div>
-      <h2 className="text-sm font-medium text-muted mb-3">Quick Access</h2>
+      <h2 className="text-xs font-semibold text-muted uppercase tracking-widest mb-3">
+        Quick Buy
+      </h2>
       <motion.div
         variants={container}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-3 sm:grid-cols-5 gap-3"
+        className="grid grid-cols-3 sm:grid-cols-6 gap-2.5"
       >
         {services.map((s) => (
           <motion.div key={s.href} variants={item}>
             <Link
               href={s.href}
-              className="flex flex-col items-center gap-2 p-4 rounded-xl border border-border bg-surface hover:bg-surface-elevated hover:shadow-sm transition-all text-center"
+              className={`group flex flex-col items-center gap-2.5 p-4 rounded-2xl border bg-surface hover:shadow-lg transition-all duration-200 text-center active:scale-[0.96] ${s.border}`}
             >
-              <div className={`p-2.5 rounded-xl ${s.color}`}>
-                <s.icon size={22} />
+              <div
+                className={`p-2.5 rounded-xl ${s.bg} group-hover:scale-110 transition-transform duration-200`}
+              >
+                <s.icon size={20} className={s.fg} />
               </div>
-              <span className="text-xs font-medium text-foreground">
+              <span className="text-xs font-semibold text-foreground/80 group-hover:text-foreground transition-colors">
                 {s.label}
               </span>
             </Link>

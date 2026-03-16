@@ -72,6 +72,11 @@ body {
   background-clip: text;
 }
 
+/* Subtle white hover bg for dark surfaces */
+.hover\:bg-white\/8:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
 /* Noise texture overlay */
 .noise-bg::before {
   content: '';

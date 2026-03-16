@@ -31,24 +31,52 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
 
-  if (user && pathname.startsWith("/login")) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
-    return NextResponse.redirect(url);
+  // Helper: get role for an authenticated user
+  async function getUserRole(): Promise<string | null> {
+    if (!user) return null;
+    const { data } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+    return data?.role ?? null;
   }
-  if (user && pathname.startsWith("/register")) {
+
+  // Redirect logged-in users away from auth pages
+  if (user && (pathname.startsWith("/login") || pathname.startsWith("/register"))) {
+    const role = await getUserRole();
     const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
+    url.pathname = role && ["admin", "super_admin"].includes(role) ? "/admin" : "/dashboard";
     return NextResponse.redirect(url);
   }
 
-  const protectedPrefixes = ["/dashboard", "/wallet", "/transactions", "/buy", "/profile", "/notifications", "/beneficiaries"];
+  // Redirect admin users landing on the customer dashboard
+  if (user && pathname === "/dashboard") {
+    const role = await getUserRole();
+    if (role && ["admin", "super_admin"].includes(role)) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/admin";
+      return NextResponse.redirect(url);
+    }
+  }
+
+  // Protect customer-only routes
+  const protectedPrefixes = [
+    "/dashboard",
+    "/wallet",
+    "/transactions",
+    "/buy",
+    "/profile",
+    "/notifications",
+    "/beneficiaries",
+  ];
   if (!user && protectedPrefixes.some((p) => pathname.startsWith(p))) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
+  // Protect admin routes
   if (pathname.startsWith("/admin")) {
     if (!user) {
       const url = request.nextUrl.clone();
@@ -56,13 +84,8 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    if (!profile || !["admin", "super_admin"].includes(profile.role)) {
+    const role = await getUserRole();
+    if (!role || !["admin", "super_admin"].includes(role)) {
       const url = request.nextUrl.clone();
       url.pathname = "/dashboard";
       return NextResponse.redirect(url);

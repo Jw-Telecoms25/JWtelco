@@ -87,7 +87,7 @@ export default function FAQ() {
   const inView = useInView(ref, { once: true, margin: "-100px" });
 
   return (
-    <section id="faq" className="py-24 sm:py-32 relative">
+    <section id="faq" className="py-16 sm:py-24 relative">
       <div className="mx-auto max-w-7xl px-6" ref={ref}>
         <div className="grid lg:grid-cols-[1fr_1.5fr] gap-16">
           {/* Left */}

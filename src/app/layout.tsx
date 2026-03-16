@@ -20,6 +20,10 @@ export const metadata: Metadata = {
   description:
     "Nigeria's trusted VTU platform for instant airtime, data bundles, bill payments, and more. Fast, reliable, and affordable.",
   keywords: ["VTU", "airtime", "data", "Nigeria", "recharge", "bills"],
+  icons: {
+    icon: "/jw-logo.jpg",
+    apple: "/jw-logo.jpg",
+  },
 };
 
 export default function RootLayout({

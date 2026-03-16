@@ -61,7 +61,7 @@ export default function Services() {
   const inView = useInView(ref, { once: true, margin: "-100px" });
 
   return (
-    <section id="services" className="py-24 sm:py-32 relative">
+    <section id="services" className="py-16 sm:py-24 relative">
       <div className="mx-auto max-w-7xl px-6">
         <div ref={ref} className="max-w-2xl mb-16">
           <motion.p

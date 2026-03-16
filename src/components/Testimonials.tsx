@@ -109,7 +109,7 @@ const reviews: Review[] = [
 
 function ReviewCard({ review }: { review: Review }) {
   return (
-    <div className="flex-shrink-0 w-[340px] sm:w-[380px] p-6 bg-white rounded-2xl border border-border hover:border-accent/20 hover:shadow-xl hover:shadow-accent/5 transition-all duration-500 group cursor-pointer mx-2">
+    <div className="flex-shrink-0 w-[300px] sm:w-[360px] p-5 bg-white rounded-2xl border border-border hover:border-accent/20 hover:shadow-xl hover:shadow-accent/5 transition-all duration-500 group cursor-pointer mx-2">
       <div className="flex items-center gap-3 mb-4">
         <div className="w-11 h-11 rounded-full bg-navy/5 flex items-center justify-center text-sm font-bold text-navy group-hover:bg-accent/10 group-hover:text-accent transition-colors">
           {review.avatar}
@@ -147,7 +147,7 @@ export default function Testimonials() {
   const row2 = reviews.slice(5);
 
   return (
-    <section id="testimonials" className="py-24 sm:py-32 bg-surface-elevated relative overflow-hidden">
+    <section id="testimonials" className="py-16 sm:py-24 bg-surface-elevated relative overflow-hidden" style={{ overflowX: "hidden" }}>
       <div ref={ref}>
         <div className="mx-auto max-w-7xl px-6 mb-16">
           <div className="text-center max-w-2xl mx-auto">

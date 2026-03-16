@@ -1,6 +1,7 @@
 "use client";
 
-import { Zap, Phone, Mail, MapPin } from "lucide-react";
+import { Phone, Mail, MapPin, MessageCircle } from "lucide-react";
+import { JWGlobe } from "@/components/ui/JWLogo";
 
 const footerLinks = {
   Services: [
@@ -18,15 +19,23 @@ const footerLinks = {
   ],
   Support: [
     { label: "Help Center", href: "#faq" },
+    { label: "WhatsApp Support", href: "https://wa.me/2347067721861" },
     { label: "Email Support", href: "mailto:support@jwtelecoms.com.ng" },
   ],
 };
+
+const socials = [
+  { label: "WhatsApp", href: "https://wa.me/2347067721861" },
+  { label: "Twitter", href: "#" },
+  { label: "Instagram", href: "#" },
+  { label: "Facebook", href: "#" },
+];
 
 export default function Footer() {
   return (
     <footer className="bg-navy relative noise-bg">
       {/* CTA Banner */}
-      <div className="mx-auto max-w-7xl px-6 -translate-y-1/2">
+      <div className="mx-auto max-w-7xl px-5 -translate-y-1/2">
         <div className="relative bg-accent rounded-3xl p-8 sm:p-12 overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-[80px] translate-x-1/2 -translate-y-1/2" />
           <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
@@ -40,7 +49,7 @@ export default function Footer() {
             </div>
             <a
               href="/register"
-              className="px-7 py-4 bg-navy text-white font-bold rounded-2xl hover:bg-navy-light transition-all hover:shadow-xl flex-shrink-0"
+              className="px-7 py-4 bg-navy text-white font-bold rounded-2xl hover:bg-navy-light transition-all hover:shadow-xl flex-shrink-0 active:scale-[0.98]"
             >
               Create Free Account
             </a>
@@ -48,15 +57,13 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Main footer */}
-      <div className="mx-auto max-w-7xl px-6 pb-12">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-8 sm:gap-12">
+      {/* Main footer content */}
+      <div className="mx-auto max-w-7xl px-5 pb-12">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-8 sm:gap-10">
           {/* Brand column */}
           <div className="col-span-2">
-            <a href="#" className="inline-flex items-center gap-2 mb-6">
-              <div className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center">
-                <Zap className="w-5 h-5 text-accent" />
-              </div>
+            <a href="#" className="inline-flex items-center gap-2 mb-5">
+              <JWGlobe size={32} />
               <span className="font-bold text-lg text-white tracking-tight">
                 JW<span className="text-accent">Telecoms</span>
               </span>
@@ -66,16 +73,31 @@ export default function Footer() {
               payments, and digital services. Fast, secure, affordable.
             </p>
             <div className="space-y-3">
-              <a href="tel:+2340000000000" className="flex items-center gap-3 text-sm text-white/50 hover:text-accent transition-colors">
-                <Phone className="w-4 h-4" />
-                +234 XXX XXX XXXX
+              <a
+                href="tel:+2347067721861"
+                className="flex items-center gap-3 text-sm text-white/50 hover:text-accent transition-colors"
+              >
+                <Phone className="w-4 h-4 flex-shrink-0" />
+                +234 706 772 1861
               </a>
-              <a href="mailto:support@jwtelecoms.com.ng" className="flex items-center gap-3 text-sm text-white/50 hover:text-accent transition-colors">
-                <Mail className="w-4 h-4" />
+              <a
+                href="https://wa.me/2347067721861"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 text-sm text-white/50 hover:text-accent transition-colors"
+              >
+                <MessageCircle className="w-4 h-4 flex-shrink-0" />
+                Chat on WhatsApp
+              </a>
+              <a
+                href="mailto:support@jwtelecoms.com.ng"
+                className="flex items-center gap-3 text-sm text-white/50 hover:text-accent transition-colors"
+              >
+                <Mail className="w-4 h-4 flex-shrink-0" />
                 support@jwtelecoms.com.ng
               </a>
-              <p className="flex items-center gap-3 text-sm text-white/50">
-                <MapPin className="w-4 h-4" />
+              <p className="flex items-center gap-3 text-sm text-white/40">
+                <MapPin className="w-4 h-4 flex-shrink-0" />
                 Lagos, Nigeria
               </p>
             </div>
@@ -90,6 +112,8 @@ export default function Footer() {
                   <li key={link.label}>
                     <a
                       href={link.href}
+                      target={link.href.startsWith("http") ? "_blank" : undefined}
+                      rel={link.href.startsWith("http") ? "noopener noreferrer" : undefined}
                       className="text-sm text-white/40 hover:text-accent transition-colors"
                     >
                       {link.label}
@@ -106,14 +130,16 @@ export default function Footer() {
           <p className="text-xs text-white/30">
             &copy; {new Date().getFullYear()} JWTelecoms. All rights reserved.
           </p>
-          <div className="flex items-center gap-6">
-            {["Twitter", "Instagram", "Facebook", "WhatsApp"].map((social) => (
+          <div className="flex items-center gap-6 flex-wrap justify-center">
+            {socials.map((s) => (
               <a
-                key={social}
-                href="#"
+                key={s.label}
+                href={s.href}
+                target={s.href.startsWith("http") ? "_blank" : undefined}
+                rel={s.href.startsWith("http") ? "noopener noreferrer" : undefined}
                 className="text-xs text-white/30 hover:text-accent transition-colors"
               >
-                {social}
+                {s.label}
               </a>
             ))}
           </div>
