@@ -11,7 +11,7 @@ async function checkProviderHealthy(providerName: string, serviceType: string): 
     const { data } = await admin
       .from("provider_health")
       .select("is_healthy")
-      .eq("provider_name", providerName)
+      .eq("provider", providerName)
       .eq("service_type", serviceType)
       .single();
     return data?.is_healthy !== false; // Default healthy if no record

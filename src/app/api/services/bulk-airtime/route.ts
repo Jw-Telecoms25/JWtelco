@@ -119,6 +119,7 @@ export async function POST(request: NextRequest) {
             p_reference: reversalRef,
             p_metadata: { original_reference: reference },
           });
+          await admin.from("transactions").update({ status: "success" }).eq("reference", reversalRef);
           await admin.from("transactions").update({ status: "failed" }).eq("id", txnId);
           results.push({ index: i, phone: item.phone, status: "failed", reference, error: result.message });
         }

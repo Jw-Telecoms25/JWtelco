@@ -1,206 +1,82 @@
 "use client";
 
-import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, Shield, Clock, TrendingUp } from "lucide-react";
+import { JWGlobe } from "@/components/ui/JWLogo";
 
-const stats = [
-  { value: "50K+", label: "Active Users" },
-  { value: "99.9%", label: "Success Rate" },
-  { value: "2s", label: "Avg. Delivery" },
-  { value: "24/7", label: "Support" },
-];
+const spring = { type: "spring" as const, damping: 22, stiffness: 180 };
 
-const badges = [
-  { icon: Shield, text: "Bank-grade Security" },
-  { icon: Clock, text: "Instant Delivery" },
-  { icon: TrendingUp, text: "Best Rates" },
-];
+// Will be updated with working long-format CDN URL once confirmed
+const HERO_PHOTO = "https://images.unsplash.com/photo-1531123414780-f74242c2b052?w=1920&q=85&fit=crop&crop=faces,center";
 
 export default function Hero() {
   return (
-    <section className="relative min-h-screen flex items-center overflow-hidden">
-      {/* Background */}
-      <div className="absolute inset-0 bg-navy noise-bg" />
-      <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-accent/10 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/3" />
-      <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-accent-dim/10 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/3" />
+    <section className="relative h-[100svh] overflow-hidden">
 
-      {/* Grid pattern */}
-      <div className="absolute inset-0 opacity-[0.03]" style={{
-        backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-        backgroundSize: '60px 60px'
-      }} />
+      {/* Base gradient — shown when photo hasn't loaded */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#0a0d1a] via-[#18053a] to-[#280060]" />
 
-      <div className="relative z-10 mx-auto max-w-7xl px-5 pt-28 pb-16 sm:pt-32 sm:pb-20 w-full">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-          {/* Left content */}
-          <div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/10 mb-8"
-            >
-              <span className="w-2 h-2 rounded-full bg-emerald animate-pulse" />
-              <span className="text-sm text-white/70 font-medium">
-                Trusted by 50,000+ Nigerians
-              </span>
-            </motion.div>
+      {/* Lifestyle photo — full-bleed, no blend mode so colors show naturally */}
+      {HERO_PHOTO && (
+        <div
+          className="absolute inset-0 bg-cover bg-[position:50%_30%] opacity-55"
+          style={{ backgroundImage: `url(${HERO_PHOTO})` }}
+        />
+      )}
 
-            <motion.h1
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold text-white leading-[1.05] tracking-tight"
-            >
-              Recharge{" "}
-              <span className="relative inline-block">
-                <span className="relative z-10 text-accent-bright">Instantly.</span>
-                <motion.span
-                  initial={{ scaleX: 0 }}
-                  animate={{ scaleX: 1 }}
-                  transition={{ duration: 0.6, delay: 0.8 }}
-                  className="absolute bottom-2 left-0 right-0 h-3 bg-accent/20 -z-0 origin-left"
-                />
-              </span>
-              <br />
-              Save More.
-            </motion.h1>
+      {/* Scrim: strong bottom-left (for text), very light elsewhere */}
+      <div className="absolute inset-0 bg-gradient-to-tr from-black/75 via-black/25 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
 
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-              className="mt-6 text-lg text-white/50 max-w-lg leading-relaxed"
-            >
-              Buy airtime, data bundles, pay electricity bills, and more — all
-              from one platform. Lightning fast, ridiculously affordable.
-            </motion.p>
+      {/* Purple glow accent */}
+      <div className="absolute top-1/3 right-1/4 w-[500px] h-[500px] bg-purple-500/15 rounded-full blur-[100px] pointer-events-none" />
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-              className="mt-10 flex flex-wrap gap-4"
-            >
-              <Link
-                href="/register"
-                className="group inline-flex items-center gap-2 px-7 py-4 bg-accent text-navy font-bold rounded-2xl hover:bg-accent-bright transition-all hover:shadow-xl hover:shadow-accent/20 active:scale-[0.98]"
-              >
-                Create Free Account
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </Link>
-              <a
-                href="#services"
-                className="inline-flex items-center gap-2 px-7 py-4 text-white/70 font-semibold rounded-2xl border border-white/10 hover:border-white/20 hover:text-white transition-all"
-              >
-                View Services
-              </a>
-            </motion.div>
+      {/* Bottom fade into next section */}
+      <div className="absolute bottom-0 left-0 right-0 h-36 bg-gradient-to-t from-[#f4f4f0] to-transparent pointer-events-none" />
 
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.6 }}
-              className="mt-10 flex flex-wrap gap-6"
-            >
-              {badges.map(({ icon: Icon, text }) => (
-                <div key={text} className="flex items-center gap-2 text-white/40">
-                  <Icon className="w-4 h-4 text-accent/60" />
-                  <span className="text-sm font-medium">{text}</span>
-                </div>
-              ))}
-            </motion.div>
-          </div>
+      {/* Content — absolutely anchored to bottom */}
+      <div className="absolute bottom-0 left-0 right-0 z-10 pb-24 lg:pb-28 px-5 lg:px-8">
+        <div className="mx-auto max-w-7xl flex flex-col lg:flex-row items-end justify-between gap-6 lg:gap-8">
 
-          {/* Right — Stats card cluster */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.7, delay: 0.3 }}
-            className="hidden lg:block relative"
+          {/* Headline — bottom-left */}
+          <motion.h1
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ ...spring, delay: 0.1 }}
+            className="text-5xl sm:text-6xl lg:text-7xl xl:text-[88px] font-extrabold text-white leading-[0.95] tracking-[-0.03em]"
           >
-            {/* Main card */}
-            <div className="relative bg-white/[0.07] backdrop-blur-xl rounded-3xl border border-white/10 p-8 overflow-hidden">
-              <div className="absolute top-0 right-0 w-40 h-40 bg-accent/10 rounded-full blur-[60px]" />
+            Recharge<br />
+            Instantly.<br />
+            <span className="text-accent">Save More.</span>
+          </motion.h1>
 
-              <div className="relative z-10">
-                <div className="flex items-center gap-3 mb-8">
-                  <div className="w-12 h-12 rounded-2xl bg-accent/20 flex items-center justify-center">
-                    <TrendingUp className="w-6 h-6 text-accent" />
-                  </div>
-                  <div>
-                    <p className="text-white font-semibold">Platform Stats</p>
-                    <p className="text-sm text-white/40">Live overview</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-6">
-                  {stats.map((stat, i) => (
-                    <motion.div
-                      key={stat.label}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.4, delay: 0.5 + i * 0.1 }}
-                      className="p-4 rounded-2xl bg-white/5 border border-white/5"
-                    >
-                      <p className="text-3xl font-bold text-white">{stat.value}</p>
-                      <p className="text-sm text-white/40 mt-1">{stat.label}</p>
-                    </motion.div>
-                  ))}
-                </div>
-
-                {/* Simulated activity feed */}
-                <div className="mt-6 space-y-3">
+          {/* Compact social-proof card — bottom-right, desktop only */}
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ ...spring, delay: 0.32 }}
+            className="hidden lg:block flex-shrink-0"
+          >
+            <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl shadow-black/20 px-5 py-4 flex items-center gap-4">
+              <JWGlobe size={36} />
+              <div className="flex flex-col gap-2.5">
+                <p className="text-xs font-bold text-navy/60 uppercase tracking-wider">JWTelecoms</p>
+                <div className="flex items-center gap-4">
                   {[
-                    { name: "Amina O.", action: "bought 2GB MTN data", time: "2s ago" },
-                    { name: "Chidi E.", action: "recharged ₦1,000 airtime", time: "5s ago" },
-                    { name: "Blessing A.", action: "paid electricity bill", time: "12s ago" },
-                  ].map((item, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.3, delay: 1 + i * 0.2 }}
-                      className="flex items-center gap-3 p-3 rounded-xl bg-white/5"
-                    >
-                      <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-xs font-bold text-accent">
-                        {item.name.split(" ").map(n => n[0]).join("")}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-white/70 truncate">
-                          <span className="text-white font-medium">{item.name}</span>{" "}
-                          {item.action}
-                        </p>
-                      </div>
-                      <span className="text-xs text-white/30 flex-shrink-0">{item.time}</span>
-                    </motion.div>
+                    { value: "50k+", label: "Users" },
+                    { value: "₦2B+", label: "Processed" },
+                    { value: "99.9%", label: "Uptime" },
+                  ].map((s) => (
+                    <div key={s.label}>
+                      <p className="text-sm font-extrabold text-navy leading-none">{s.value}</p>
+                    </div>
                   ))}
                 </div>
               </div>
             </div>
-
-            {/* Floating badge */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 1.2 }}
-              className="absolute -bottom-4 -left-6 bg-white rounded-2xl shadow-2xl shadow-black/10 px-5 py-3 flex items-center gap-3"
-            >
-              <div className="w-10 h-10 rounded-xl bg-emerald/10 flex items-center justify-center">
-                <Shield className="w-5 h-5 text-emerald" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-navy">SSL Secured</p>
-                <p className="text-xs text-muted">256-bit encryption</p>
-              </div>
-            </motion.div>
           </motion.div>
+
         </div>
       </div>
-
-      {/* Bottom fade */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent" />
     </section>
   );
 }

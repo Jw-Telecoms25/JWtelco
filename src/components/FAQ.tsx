@@ -84,10 +84,10 @@ function FAQItem({ faq, index }: { faq: { q: string; a: string }; index: number 
 
 export default function FAQ() {
   const ref = useRef(null);
-  const inView = useInView(ref, { once: true, margin: "-100px" });
+  const inView = useInView(ref, { once: true, amount: 0.1 });
 
   return (
-    <section id="faq" className="py-16 sm:py-24 relative">
+    <section id="faq" className="py-16 sm:py-24 bg-[#f4f4f0] relative">
       <div className="mx-auto max-w-7xl px-6" ref={ref}>
         <div className="grid lg:grid-cols-[1fr_1.5fr] gap-16">
           {/* Left */}
@@ -123,7 +123,7 @@ export default function FAQ() {
               animate={inView ? { opacity: 1 } : {}}
               transition={{ delay: 0.3 }}
               href="#"
-              className="inline-flex items-center gap-2 px-5 py-3 text-sm font-bold text-white bg-navy rounded-xl hover:bg-navy-light transition-all"
+              className="inline-flex items-center gap-2 px-6 py-3.5 text-sm font-bold text-white bg-accent rounded-full hover:bg-accent-bright transition-all hover:shadow-lg hover:shadow-accent/25 active:scale-[0.97]"
             >
               Chat with Support
             </motion.a>
@@ -134,7 +134,7 @@ export default function FAQ() {
             initial={{ opacity: 0 }}
             animate={inView ? { opacity: 1 } : {}}
             transition={{ delay: 0.2 }}
-            className="bg-white rounded-2xl border border-border p-6 sm:p-8"
+            className="bg-white rounded-3xl border border-border p-6 sm:p-8 shadow-sm"
           >
             {faqs.map((faq, i) => (
               <FAQItem key={i} faq={faq} index={i} />

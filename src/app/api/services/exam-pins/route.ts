@@ -68,6 +68,7 @@ export async function POST(request: NextRequest) {
         .from("transactions")
         .select("id, status, reference")
         .eq("idempotency_key", idempotencyKey)
+        .eq("user_id", user.id)
         .single();
 
       if (existing && (existing.status === "success" || existing.status === "processing")) {

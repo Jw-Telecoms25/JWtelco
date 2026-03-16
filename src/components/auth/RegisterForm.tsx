@@ -510,7 +510,7 @@ export function RegisterForm() {
               type="text"
               value={form.referralCode}
               onChange={(e) => update("referralCode", e.target.value.toUpperCase())}
-              placeholder="e.g. A1B2C3D4"
+              placeholder="A1B2C3D4"
               maxLength={8}
               className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border text-sm bg-white outline-none transition-colors placeholder:text-muted/60 focus:ring-2 focus:ring-accent/20 focus:border-accent uppercase"
             />

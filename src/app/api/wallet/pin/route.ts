@@ -4,9 +4,15 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { logger } from "@/lib/utils/logger";
 import { createHash, createHmac } from "crypto";
+import bcrypt from "bcryptjs";
 
-// PIN hashed as SHA-256(userId:pin) — userId acts as salt, no bcrypt needed for numeric PINs
-function hashPin(pin: string, userId: string): string {
+const BCRYPT_ROUNDS = 10;
+
+function isLegacyHash(hash: string): boolean {
+  return !hash.startsWith("$2") && /^[0-9a-f]{64}$/.test(hash);
+}
+
+function legacyHash(pin: string, userId: string): string {
   return createHash("sha256").update(`${userId}:${pin}`).digest("hex");
 }
 
@@ -14,9 +20,25 @@ function isValidPin(pin: string): boolean {
   return /^\d{4,6}$/.test(pin);
 }
 
-/**
- * GET /api/wallet/pin — check if user has set a PIN
- */
+type PinRpcResult = { status: string; attempts_remaining?: number; locked_until?: string } | null;
+
+function handleLockedOrIncorrect(result: PinRpcResult): NextResponse | null {
+  const status = result?.status;
+  if (status === "locked") {
+    return NextResponse.json(
+      { error: "PIN locked due to too many failed attempts. Try again in 30 minutes.", lockedUntil: result?.locked_until },
+      { status: 429 }
+    );
+  }
+  if (status !== "ok") {
+    return NextResponse.json(
+      { error: "Incorrect PIN", attemptsRemaining: result?.attempts_remaining ?? 0 },
+      { status: 401 }
+    );
+  }
+  return null;
+}
+
 export async function GET() {
   try {
     const supabase = await createClient();
@@ -37,10 +59,6 @@ export async function GET() {
   }
 }
 
-/**
- * POST /api/wallet/pin — set or change transaction PIN
- * Body: { pin: string, currentPin?: string }
- */
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
@@ -58,41 +76,36 @@ export async function POST(request: NextRequest) {
     }
 
     const admin = createAdminClient();
-
     const { data: profile } = await admin
       .from("profiles")
-      .select("pin_set_at")
+      .select("pin_set_at, transaction_pin_hash")
       .eq("id", user.id)
       .single();
 
-    // If changing an existing PIN, verify current PIN — hash never leaves DB
     if (profile?.pin_set_at) {
       if (!currentPin) {
         return NextResponse.json({ error: "Current PIN required to change PIN" }, { status: 400 });
       }
-      const currentHash = hashPin(String(currentPin), user.id);
-      const { data: result } = await admin.rpc("check_and_verify_pin", {
-        p_user_id: user.id,
-        p_pin_hash: currentHash,
-      });
-      const status = (result as { status: string } | null)?.status;
-      if (status === "locked") {
-        return NextResponse.json({ error: "PIN is temporarily locked. Try again later." }, { status: 429 });
-      }
-      if (status !== "ok") {
-        const remaining = (result as { attempts_remaining?: number } | null)?.attempts_remaining ?? 0;
-        return NextResponse.json(
-          { error: "Current PIN is incorrect", attemptsRemaining: remaining },
-          { status: 401 }
-        );
+
+      const storedHash = profile.transaction_pin_hash as string | null;
+
+      if (storedHash && !isLegacyHash(storedHash)) {
+        const correct = await bcrypt.compare(String(currentPin), storedHash);
+        const { data: result } = await admin.rpc("record_pin_attempt", { p_user_id: user.id, p_success: correct });
+        const errRes = handleLockedOrIncorrect(result as PinRpcResult);
+        if (errRes) return errRes;
+      } else {
+        const { data: result } = await admin.rpc("check_and_verify_pin", {
+          p_user_id: user.id,
+          p_pin_hash: legacyHash(String(currentPin), user.id),
+        });
+        const errRes = handleLockedOrIncorrect(result as PinRpcResult);
+        if (errRes) return errRes;
       }
     }
 
-    const newHash = hashPin(String(pin), user.id);
-    await admin.rpc("set_transaction_pin", {
-      p_user_id: user.id,
-      p_pin_hash: newHash,
-    });
+    const newHash = await bcrypt.hash(String(pin), BCRYPT_ROUNDS);
+    await admin.rpc("set_transaction_pin", { p_user_id: user.id, p_pin_hash: newHash });
 
     return NextResponse.json({ success: true });
   } catch (err) {
@@ -101,11 +114,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-/**
- * PUT /api/wallet/pin — verify PIN before a purchase
- * Body: { pin: string }
- * Returns a short-lived token (60s) purchase routes must validate via x-pin-token header.
- */
 export async function PUT(request: NextRequest) {
   try {
     const supabase = await createClient();
@@ -123,10 +131,9 @@ export async function PUT(request: NextRequest) {
     }
 
     const admin = createAdminClient();
-
     const { data: profile } = await admin
       .from("profiles")
-      .select("pin_set_at")
+      .select("pin_set_at, transaction_pin_hash, pin_locked_until")
       .eq("id", user.id)
       .single();
 
@@ -134,41 +141,50 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "No PIN set. Please set a transaction PIN first." }, { status: 400 });
     }
 
-    // Atomic verify + lockout via DB function — stored hash never reaches JS layer
-    const inputHash = hashPin(String(pin), user.id);
-    const { data: result, error: rpcError } = await admin.rpc("check_and_verify_pin", {
-      p_user_id: user.id,
-      p_pin_hash: inputHash,
-    });
-
-    if (rpcError) {
-      logger.error({ error: rpcError.message }, "PIN verify RPC error");
-      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
-    }
-
-    const status = (result as { status: string } | null)?.status;
-
-    if (status === "locked") {
-      const lockedUntil = (result as { locked_until?: string } | null)?.locked_until;
+    if (profile.pin_locked_until && new Date(profile.pin_locked_until) > new Date()) {
       return NextResponse.json(
-        { error: "PIN locked due to too many failed attempts. Try again in 30 minutes.", lockedUntil },
+        { error: "PIN locked due to too many failed attempts. Try again in 30 minutes.", lockedUntil: profile.pin_locked_until },
         { status: 429 }
       );
     }
 
-    if (status !== "ok") {
-      const remaining = (result as { attempts_remaining?: number } | null)?.attempts_remaining ?? 0;
-      return NextResponse.json(
-        { error: "Incorrect PIN", attemptsRemaining: remaining },
-        { status: 401 }
-      );
+    const storedHash = profile.transaction_pin_hash as string | null;
+    if (!storedHash) {
+      return NextResponse.json({ error: "No PIN set. Please set a transaction PIN first." }, { status: 400 });
     }
 
+    let rpcResult: PinRpcResult;
+
+    if (!isLegacyHash(storedHash)) {
+      const correct = await bcrypt.compare(String(pin), storedHash);
+      const { data: result } = await admin.rpc("record_pin_attempt", { p_user_id: user.id, p_success: correct });
+      rpcResult = result as PinRpcResult;
+    } else {
+      const { data: result, error: rpcError } = await admin.rpc("check_and_verify_pin", {
+        p_user_id: user.id,
+        p_pin_hash: legacyHash(String(pin), user.id),
+      });
+      if (rpcError) {
+        logger.error({ error: rpcError.message }, "PIN verify RPC error");
+        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+      }
+      rpcResult = result as PinRpcResult;
+    }
+
+    const errRes = handleLockedOrIncorrect(rpcResult);
+    if (errRes) return errRes;
+
+    if (isLegacyHash(storedHash)) {
+      const upgradedHash = await bcrypt.hash(String(pin), BCRYPT_ROUNDS);
+      await admin.rpc("set_transaction_pin", { p_user_id: user.id, p_pin_hash: upgradedHash })
+        .catch((err) => logger.warn({ error: err?.message }, "PIN hash upgrade failed"));
+    }
+
+    const secret = process.env.PIN_TOKEN_SECRET;
+    if (!secret) throw new Error("PIN_TOKEN_SECRET environment variable is not set");
+
     const expires = Math.floor(Date.now() / 1000) + 60;
-    const secret = process.env.PIN_TOKEN_SECRET || "fallback-pin-secret";
-    const token = createHmac("sha256", secret)
-      .update(`${user.id}:${expires}`)
-      .digest("hex");
+    const token = createHmac("sha256", secret).update(`${user.id}:${expires}`).digest("hex");
 
     return NextResponse.json({ token, expires, pinToken: `${token}.${expires}` });
   } catch (err) {

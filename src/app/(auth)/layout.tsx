@@ -7,7 +7,7 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="relative min-h-screen flex items-center justify-center px-4 py-12">
+    <div className="relative min-h-screen flex items-center justify-center px-4 py-12 bg-navy overflow-hidden">
       {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-navy via-navy-light to-navy" />
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-accent/8 rounded-full blur-[100px] -translate-y-1/3 translate-x-1/4" />

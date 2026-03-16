@@ -36,7 +36,7 @@ export function Topbar() {
     : "?";
 
   return (
-    <header className="sticky top-0 z-30 bg-surface/80 backdrop-blur-md border-b border-border">
+    <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-border">
       <div className="flex items-center justify-between h-16 px-4 lg:px-6">
         {/* Left: hamburger + greeting */}
         <div className="flex items-center gap-3">
@@ -58,7 +58,7 @@ export function Topbar() {
         {/* Right: balance, bell, avatar */}
         <div className="flex items-center gap-2 sm:gap-4">
           {/* Wallet balance */}
-          <div className="px-3 py-1.5 rounded-xl bg-surface-elevated border border-border text-sm font-semibold text-foreground">
+          <div className="px-3 py-1.5 rounded-full bg-accent/8 border border-accent/15 text-sm font-bold text-accent">
             {formatNaira(balance)}
           </div>
 

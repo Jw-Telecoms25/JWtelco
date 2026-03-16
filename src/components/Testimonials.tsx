@@ -109,45 +109,49 @@ const reviews: Review[] = [
 
 function ReviewCard({ review }: { review: Review }) {
   return (
-    <div className="flex-shrink-0 w-[300px] sm:w-[360px] p-5 bg-white rounded-2xl border border-border hover:border-accent/20 hover:shadow-xl hover:shadow-accent/5 transition-all duration-500 group cursor-pointer mx-2">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-11 h-11 rounded-full bg-navy/5 flex items-center justify-center text-sm font-bold text-navy group-hover:bg-accent/10 group-hover:text-accent transition-colors">
-          {review.avatar}
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="font-semibold text-navy text-sm">{review.name}</p>
-          <p className="text-xs text-muted">{review.handle}</p>
-        </div>
-        <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold ${review.networkColor}`}>
-          {review.network}
-        </span>
-      </div>
+    <div className="flex-shrink-0 w-[320px] sm:w-[380px] p-6 bg-white rounded-3xl border border-border hover:border-accent/25 hover:shadow-2xl hover:shadow-accent/8 hover:-translate-y-1 transition-all duration-300 group cursor-pointer mx-2.5 relative overflow-hidden">
+      {/* Large decorative quote */}
+      <span className="absolute top-4 right-5 text-[72px] leading-none font-black text-accent/6 pointer-events-none select-none">"</span>
 
-      <div className="flex gap-0.5 mb-3">
+      {/* Stars first — grabs attention */}
+      <div className="flex gap-0.5 mb-4">
         {Array.from({ length: 5 }).map((_, i) => (
           <Star
             key={i}
-            className={`w-3.5 h-3.5 ${
-              i < review.rating ? "text-amber-400 fill-amber-400" : "text-gray-200"
+            className={`w-4 h-4 ${
+              i < review.rating ? "text-amber-400 fill-amber-400" : "text-gray-200 fill-gray-200"
             }`}
           />
         ))}
       </div>
 
-      <p className="text-sm text-navy/70 leading-relaxed">{review.text}</p>
+      <p className="text-sm text-navy/80 leading-relaxed mb-5 relative z-10">{review.text}</p>
+
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center text-xs font-extrabold text-accent ring-2 ring-accent/15">
+          {review.avatar}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-bold text-navy text-sm leading-tight">{review.name}</p>
+          <p className="text-[11px] text-muted">{review.handle}</p>
+        </div>
+        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${review.networkColor}`}>
+          {review.network}
+        </span>
+      </div>
     </div>
   );
 }
 
 export default function Testimonials() {
   const ref = useRef(null);
-  const inView = useInView(ref, { once: true, margin: "-50px" });
+  const inView = useInView(ref, { once: true, amount: 0.05 });
 
   const row1 = reviews.slice(0, 5);
   const row2 = reviews.slice(5);
 
   return (
-    <section id="testimonials" className="py-16 sm:py-24 bg-surface-elevated relative overflow-hidden" style={{ overflowX: "hidden" }}>
+    <section id="testimonials" className="py-16 sm:py-24 bg-white relative overflow-hidden" style={{ overflowX: "hidden" }}>
       <div ref={ref}>
         <div className="mx-auto max-w-7xl px-6 mb-16">
           <div className="text-center max-w-2xl mx-auto">
@@ -162,11 +166,10 @@ export default function Testimonials() {
               initial={{ opacity: 0, y: 20 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ delay: 0.1 }}
-              className="text-3xl sm:text-4xl lg:text-5xl font-bold text-navy tracking-tight"
+              className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-navy tracking-tight leading-[1.1]"
             >
-              Don&apos;t take our word.
-              <br />
-              <span className="text-muted">Hear from our users.</span>
+              Loved by thousands.{" "}
+              <span className="text-navy/25">Here&apos;s what they say.</span>
             </motion.h2>
           </div>
         </div>
@@ -181,8 +184,8 @@ export default function Testimonials() {
             className="relative"
           >
             {/* Fade edges */}
-            <div className="absolute left-0 top-0 bottom-0 w-24 sm:w-40 bg-gradient-to-r from-surface-elevated to-transparent z-10 pointer-events-none" />
-            <div className="absolute right-0 top-0 bottom-0 w-24 sm:w-40 bg-gradient-to-l from-surface-elevated to-transparent z-10 pointer-events-none" />
+            <div className="absolute left-0 top-0 bottom-0 w-24 sm:w-40 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none" />
+            <div className="absolute right-0 top-0 bottom-0 w-24 sm:w-40 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none" />
 
             <div className="flex animate-marquee">
               {[...row1, ...row1].map((review, i) => (
@@ -198,8 +201,8 @@ export default function Testimonials() {
             transition={{ delay: 0.5 }}
             className="relative"
           >
-            <div className="absolute left-0 top-0 bottom-0 w-24 sm:w-40 bg-gradient-to-r from-surface-elevated to-transparent z-10 pointer-events-none" />
-            <div className="absolute right-0 top-0 bottom-0 w-24 sm:w-40 bg-gradient-to-l from-surface-elevated to-transparent z-10 pointer-events-none" />
+            <div className="absolute left-0 top-0 bottom-0 w-24 sm:w-40 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none" />
+            <div className="absolute right-0 top-0 bottom-0 w-24 sm:w-40 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none" />
 
             <div className="flex animate-marquee-reverse">
               {[...row2, ...row2].map((review, i) => (

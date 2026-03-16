@@ -31,20 +31,20 @@ interface NavItem {
 }
 
 const navItems: (NavItem | "separator")[] = [
-  { label: "Dashboard", href: "/dashboard", icon: <LayoutDashboard size={18} /> },
-  { label: "Buy Airtime", href: "/buy/airtime", icon: <Phone size={18} /> },
-  { label: "Buy Data", href: "/buy/data", icon: <Wifi size={18} /> },
-  { label: "Electricity", href: "/buy/electricity", icon: <Zap size={18} /> },
-  { label: "Cable TV", href: "/buy/cable", icon: <Tv size={18} /> },
-  { label: "Exam Pins", href: "/buy/exam-pins", icon: <GraduationCap size={18} /> },
-  { label: "Bulk Airtime", href: "/buy/bulk-airtime", icon: <Layers size={18} /> },
+  { label: "Dashboard", href: "/dashboard", icon: <LayoutDashboard size={17} /> },
+  { label: "Buy Airtime", href: "/buy/airtime", icon: <Phone size={17} /> },
+  { label: "Buy Data", href: "/buy/data", icon: <Wifi size={17} /> },
+  { label: "Electricity", href: "/buy/electricity", icon: <Zap size={17} /> },
+  { label: "Cable TV", href: "/buy/cable", icon: <Tv size={17} /> },
+  { label: "Exam Pins", href: "/buy/exam-pins", icon: <GraduationCap size={17} /> },
+  { label: "Bulk Airtime", href: "/buy/bulk-airtime", icon: <Layers size={17} /> },
   "separator",
-  { label: "Wallet", href: "/wallet", icon: <Wallet size={18} /> },
-  { label: "Transactions", href: "/transactions", icon: <Receipt size={18} /> },
-  { label: "Beneficiaries", href: "/beneficiaries", icon: <Users size={18} /> },
+  { label: "Wallet", href: "/wallet", icon: <Wallet size={17} /> },
+  { label: "Transactions", href: "/transactions", icon: <Receipt size={17} /> },
+  { label: "Beneficiaries", href: "/beneficiaries", icon: <Users size={17} /> },
   "separator",
-  { label: "Profile", href: "/profile", icon: <User size={18} /> },
-  { label: "Notifications", href: "/notifications", icon: <Bell size={18} /> },
+  { label: "Profile", href: "/profile", icon: <User size={17} /> },
+  { label: "Notifications", href: "/notifications", icon: <Bell size={17} /> },
 ];
 
 function NavContent({ onNavigate }: { onNavigate?: () => void }) {
@@ -54,14 +54,14 @@ function NavContent({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="px-4 py-5 border-b border-white/10">
+      <div className="px-5 py-5 border-b border-border">
         <Link
           href="/dashboard"
           className="flex items-center gap-2.5"
           onClick={onNavigate}
         >
-          <JWGlobe size={30} />
-          <span className="font-bold text-base text-white tracking-tight">
+          <JWGlobe size={28} />
+          <span className="font-extrabold text-base text-navy tracking-tight">
             JW<span className="text-accent">Telecoms</span>
           </span>
         </Link>
@@ -71,7 +71,7 @@ function NavContent({ onNavigate }: { onNavigate?: () => void }) {
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
         {navItems.map((item, i) => {
           if (item === "separator") {
-            return <div key={`sep-${i}`} className="my-2 border-t border-white/10" />;
+            return <div key={`sep-${i}`} className="my-2 border-t border-border" />;
           }
 
           const isActive = pathname === item.href;
@@ -82,16 +82,16 @@ function NavContent({ onNavigate }: { onNavigate?: () => void }) {
               href={item.href}
               onClick={onNavigate}
               className={`
-                flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
+                flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-medium
                 transition-all duration-150
                 ${
                   isActive
-                    ? "bg-accent/20 text-accent border border-accent/20"
-                    : "text-gray-400 hover:bg-white/8 hover:text-white"
+                    ? "bg-accent/8 text-accent border border-accent/12"
+                    : "text-navy/50 hover:bg-navy/4 hover:text-navy"
                 }
               `}
             >
-              <span className={isActive ? "text-accent" : "text-gray-500"}>
+              <span className={isActive ? "text-accent" : "text-navy/35"}>
                 {item.icon}
               </span>
               <span>{item.label}</span>
@@ -101,25 +101,23 @@ function NavContent({ onNavigate }: { onNavigate?: () => void }) {
       </nav>
 
       {/* Footer links */}
-      <div className="px-3 pb-4 space-y-1 border-t border-white/10 pt-3">
-        {/* Home link */}
+      <div className="px-3 pb-4 space-y-1 border-t border-border pt-3">
         <Link
           href="/"
           onClick={onNavigate}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-400 hover:bg-white/8 hover:text-white transition-all"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-medium text-navy/40 hover:bg-navy/4 hover:text-navy transition-all"
         >
-          <Home size={18} className="text-gray-500" />
+          <Home size={17} className="text-navy/30" />
           <span>Homepage</span>
         </Link>
 
-        {/* Admin link — only visible for admin/super_admin */}
         {isAdmin && (
           <Link
             href="/admin"
             onClick={onNavigate}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 transition-all border border-amber-500/10"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-medium bg-amber-50 text-amber-600 hover:bg-amber-100 transition-all border border-amber-200/60"
           >
-            <Shield size={18} />
+            <Shield size={17} />
             <span>Admin Panel</span>
           </Link>
         )}
@@ -133,8 +131,8 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Desktop sidebar - fixed */}
-      <aside className="hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:left-0 lg:w-64 bg-navy border-r border-white/5">
+      {/* Desktop sidebar */}
+      <aside className="hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:left-0 lg:w-64 bg-white border-r border-border shadow-sm">
         <NavContent />
       </aside>
 
@@ -142,28 +140,25 @@ export function Sidebar() {
       <AnimatePresence>
         {sidebarOpen && (
           <>
-            {/* Overlay */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-40 bg-black/60 lg:hidden backdrop-blur-sm"
+              className="fixed inset-0 z-40 bg-black/40 lg:hidden backdrop-blur-sm"
               onClick={() => setSidebarOpen(false)}
             />
 
-            {/* Drawer */}
             <motion.aside
               initial={{ x: "-100%" }}
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", damping: 28, stiffness: 320 }}
-              className="fixed inset-y-0 left-0 z-50 w-72 bg-navy lg:hidden shadow-2xl"
+              className="fixed inset-y-0 left-0 z-50 w-72 bg-white lg:hidden shadow-2xl border-r border-border"
             >
-              {/* Close button */}
               <button
                 onClick={() => setSidebarOpen(false)}
-                className="absolute top-4 right-4 p-1.5 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-colors z-10"
+                className="absolute top-4 right-4 p-1.5 rounded-xl text-navy/40 hover:text-navy hover:bg-navy/5 transition-colors z-10"
                 aria-label="Close menu"
               >
                 <X size={20} />

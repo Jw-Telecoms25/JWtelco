@@ -1,10 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse, type NextRequest } from "next/server";
 
-/**
- * Determine the post-auth redirect based on user role.
- * Admins go to /admin, regular users go to /dashboard.
- */
 async function getRedirectForUser(
   supabase: Awaited<ReturnType<typeof createClient>>,
   fallback: string
@@ -26,12 +22,6 @@ async function getRedirectForUser(
   return fallback;
 }
 
-/**
- * Auth callback handler — Supabase redirects here after email confirmation,
- * password recovery, and magic link clicks.
- *
- * Supports both PKCE flow (code param) and token hash flow (token_hash param).
- */
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
 
@@ -43,11 +33,12 @@ export async function GET(request: NextRequest) {
     | "email"
     | "magiclink"
     | null;
-  const next = searchParams.get("next") ?? "/dashboard";
+  // Validate next to prevent open redirect — must be a relative internal path
+  const rawNext = searchParams.get("next") ?? "";
+  const next = rawNext.startsWith("/") && !rawNext.includes("://") ? rawNext : "/dashboard";
 
   const supabase = await createClient();
 
-  // PKCE flow — exchange code for session
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
@@ -59,7 +50,6 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Token hash flow — verify OTP directly
   if (token_hash && type) {
     const { error } = await supabase.auth.verifyOtp({ token_hash, type });
     if (!error) {
@@ -71,7 +61,6 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Fallback — redirect to login with an error hint
   return NextResponse.redirect(
     new URL("/login?error=invalid_link", origin)
   );
