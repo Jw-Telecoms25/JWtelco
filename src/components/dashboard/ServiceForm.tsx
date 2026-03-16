@@ -4,11 +4,13 @@ import { useState } from "react";
 import { Loader2, CheckCircle, XCircle } from "lucide-react";
 import { useUIStore } from "@/lib/stores/ui-store";
 import { useWallet } from "@/lib/hooks/use-wallet";
+import { usePinFlow } from "@/lib/hooks/use-pin-flow";
+import { PinModal } from "@/components/ui/PinModal";
 
 interface ServiceFormProps {
   title: string;
   children: React.ReactNode;
-  onSubmit: () => Promise<{ success: boolean; message?: string; [key: string]: unknown }>;
+  onSubmit: (pinToken: string | null) => Promise<{ success: boolean; message?: string; [key: string]: unknown }>;
   submitLabel?: string;
   successMessage?: string;
 }
@@ -29,16 +31,20 @@ export default function ServiceForm({
   } | null>(null);
   const addToast = useUIStore((s) => s.addToast);
   const { refreshBalance } = useWallet();
+  const { requiresPin, getPinToken, clearCachedToken, pinModalProps } = usePinFlow();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (isSubmitting) return;
+    if (isSubmitting || pinModalProps.isOpen) return;
+
+    const pinToken = await getPinToken();
+    if (requiresPin && pinToken === null) return;
 
     setIsSubmitting(true);
     setResult(null);
 
     try {
-      const res = await onSubmit();
+      const res = await onSubmit(pinToken);
       if (res.success) {
         setResult({
           success: true,
@@ -52,6 +58,7 @@ export default function ServiceForm({
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Something went wrong";
+      if (message.toLowerCase().includes("pin")) clearCachedToken();
       setResult({ success: false, message });
       addToast({ type: "error", title: "Purchase Failed", message });
     } finally {
@@ -83,6 +90,8 @@ export default function ServiceForm({
           )}
         </button>
       </form>
+
+      <PinModal {...pinModalProps} />
 
       {result && (
         <div

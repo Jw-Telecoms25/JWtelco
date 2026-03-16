@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Plus, Trash2, Loader2, Send } from "lucide-react";
 import { useUIStore } from "@/lib/stores/ui-store";
 import { formatNaira, nairaToKobo } from "@/lib/utils/format";
+import { usePinFlow } from "@/lib/hooks/use-pin-flow";
+import { PinModal } from "@/components/ui/PinModal";
 
 interface BulkRow {
   phone: string;
@@ -26,6 +28,7 @@ const emptyRow = (): BulkRow => ({ phone: "", network: "mtn", amount: "" });
 
 export default function BulkAirtimePage() {
   const addToast = useUIStore((s) => s.addToast);
+  const { requiresPin, getPinToken, pinModalProps } = usePinFlow();
   const [rows, setRows] = useState<BulkRow[]>([emptyRow(), emptyRow(), emptyRow()]);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<ResultItem[] | null>(null);
@@ -65,11 +68,17 @@ export default function BulkAirtimePage() {
       return;
     }
 
+    const pinToken = await getPinToken();
+    if (requiresPin && pinToken === null) return;
+
     setLoading(true);
     try {
       const res = await fetch("/api/services/bulk-airtime", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(pinToken ? { "x-pin-token": pinToken } : {}),
+        },
         body: JSON.stringify({
           items: validRows.map((r) => ({
             phone: r.phone,
@@ -99,6 +108,7 @@ export default function BulkAirtimePage() {
 
   return (
     <div className="space-y-6">
+      <PinModal {...pinModalProps} />
       <div>
         <h1 className="text-2xl font-bold">Bulk Airtime</h1>
         <p className="text-sm text-muted mt-1">Send airtime to multiple numbers at once (max 20)</p>

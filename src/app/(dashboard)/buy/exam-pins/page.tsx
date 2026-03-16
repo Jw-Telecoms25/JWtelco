@@ -23,12 +23,15 @@ export default function BuyExamPinsPage() {
     return Object.keys(errs).length === 0;
   }
 
-  async function handleSubmit() {
+  async function handleSubmit(pinToken: string | null) {
     if (!validate()) throw new Error("Please fix the form errors");
 
     const res = await fetch("/api/services/exam-pins", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(pinToken ? { "x-pin-token": pinToken } : {}),
+      },
       body: JSON.stringify({ examType, quantity }),
     });
 

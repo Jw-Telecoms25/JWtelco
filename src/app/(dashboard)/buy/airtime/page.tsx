@@ -29,13 +29,16 @@ export default function BuyAirtimePage() {
     return Object.keys(errs).length === 0;
   }
 
-  async function handleSubmit() {
+  async function handleSubmit(pinToken: string | null) {
     if (!validate()) throw new Error("Please fix the form errors");
 
     const finalAmount = amount || Number(customAmount);
     const res = await fetch("/api/services/airtime", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(pinToken ? { "x-pin-token": pinToken } : {}),
+      },
       body: JSON.stringify({
         phone,
         network,

@@ -64,12 +64,15 @@ export default function BuyElectricityPage() {
     return Object.keys(errs).length === 0;
   }
 
-  async function handleSubmit() {
+  async function handleSubmit(pinToken: string | null) {
     if (!validate()) throw new Error("Please fix the form errors");
 
     const res = await fetch("/api/services/electricity/buy", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(pinToken ? { "x-pin-token": pinToken } : {}),
+      },
       body: JSON.stringify({
         meterNumber,
         disco,

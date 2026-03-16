@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { User, Mail, Phone, Lock, Loader2, Gift, Copy, Users } from "lucide-react";
+import { User, Mail, Phone, Lock, Loader2, Gift, Copy, Users, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { useSupabase } from "@/components/providers/SupabaseProvider";
 import { useUIStore } from "@/lib/stores/ui-store";
@@ -26,6 +26,14 @@ export default function ProfilePage() {
   const [referral, setReferral] = useState<{ referralCode: string; totalReferred: number; totalBonusKobo: number } | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
 
+  // PIN management
+  const [hasPin, setHasPin] = useState(false);
+  const [pinLoading, setPinLoading] = useState(true);
+  const [pinNewVal, setPinNewVal] = useState("");
+  const [pinConfirmVal, setPinConfirmVal] = useState("");
+  const [pinCurrentVal, setPinCurrentVal] = useState("");
+  const [isSavingPin, setIsSavingPin] = useState(false);
+
   const fetchReferral = useCallback(async () => {
     try {
       const res = await fetch("/api/referrals");
@@ -34,6 +42,47 @@ export default function ProfilePage() {
   }, []);
 
   useEffect(() => { fetchReferral(); }, [fetchReferral]);
+
+  useEffect(() => {
+    fetch("/api/wallet/pin")
+      .then((r) => r.json())
+      .then((d) => setHasPin(d.hasPin === true))
+      .catch(() => {})
+      .finally(() => setPinLoading(false));
+  }, []);
+
+  async function handleSavePin(e: React.FormEvent) {
+    e.preventDefault();
+    if (!/^\d{4,6}$/.test(pinNewVal)) {
+      addToast({ type: "error", title: "PIN must be 4–6 digits" });
+      return;
+    }
+    if (pinNewVal !== pinConfirmVal) {
+      addToast({ type: "error", title: "PINs do not match" });
+      return;
+    }
+    setIsSavingPin(true);
+    try {
+      const body: Record<string, string> = { pin: pinNewVal };
+      if (hasPin) body.currentPin = pinCurrentVal;
+      const res = await fetch("/api/wallet/pin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setHasPin(true);
+      setPinNewVal("");
+      setPinConfirmVal("");
+      setPinCurrentVal("");
+      addToast({ type: "success", title: hasPin ? "PIN changed successfully" : "Transaction PIN set" });
+    } catch (err) {
+      addToast({ type: "error", title: err instanceof Error ? err.message : "Failed to save PIN" });
+    } finally {
+      setIsSavingPin(false);
+    }
+  }
 
   async function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault();
@@ -212,6 +261,80 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Transaction PIN */}
+      {!pinLoading && (
+        <form onSubmit={handleSavePin} className="bg-surface rounded-xl border border-border p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-accent" />
+            <h2 className="font-semibold">{hasPin ? "Change Transaction PIN" : "Set Transaction PIN"}</h2>
+          </div>
+          <p className="text-sm text-muted">
+            {hasPin
+              ? "Your PIN is required before every purchase."
+              : "Set a 4–6 digit PIN to secure your purchases. You'll enter it before every transaction."}
+          </p>
+
+          {hasPin && (
+            <div>
+              <label className="block text-sm font-medium mb-1">Current PIN</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={pinCurrentVal}
+                  onChange={(e) => setPinCurrentVal(e.target.value.replace(/\D/g, ""))}
+                  placeholder="Enter current PIN"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-surface focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
+                />
+              </div>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium mb-1">New PIN</label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+              <input
+                type="password"
+                inputMode="numeric"
+                maxLength={6}
+                value={pinNewVal}
+                onChange={(e) => setPinNewVal(e.target.value.replace(/\D/g, ""))}
+                placeholder="4–6 digit PIN"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-surface focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Confirm New PIN</label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+              <input
+                type="password"
+                inputMode="numeric"
+                maxLength={6}
+                value={pinConfirmVal}
+                onChange={(e) => setPinConfirmVal(e.target.value.replace(/\D/g, ""))}
+                placeholder="Repeat PIN"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-surface focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={isSavingPin}
+            className="w-full flex items-center justify-center gap-2 bg-accent hover:bg-accent-dim text-white font-semibold py-2.5 rounded-xl transition-colors disabled:opacity-50"
+          >
+            {isSavingPin ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+            {hasPin ? "Change PIN" : "Set PIN"}
+          </button>
+        </form>
       )}
 
       {/* Change Password */}
