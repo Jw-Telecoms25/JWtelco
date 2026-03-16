@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { processReferralCode } from "@/lib/services/referrals";
+import { checkRateLimit } from "@/lib/middleware/rate-limit";
 
 const NIGERIAN_PHONE_REGEX = /^0[7-9][01]\d{8}$/;
 
@@ -39,6 +40,13 @@ function validateInput(body: RegisterBody): string | null {
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit by IP — prefer x-real-ip (set by Vercel edge, not spoofable)
+    const ip = request.headers.get("x-real-ip") ||
+      request.headers.get("x-forwarded-for")?.split(",").at(-1)?.trim() ||
+      "unknown";
+    const rl = await checkRateLimit(`register:${ip}`, 5);
+    if (!rl.success) return rl.response!;
+
     const body = (await request.json()) as RegisterBody;
 
     const validationError = validateInput(body);
@@ -64,7 +72,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
-    // Process referral code if provided
     if (body.referralCode?.trim() && data.user) {
       const admin = createAdminClient();
       await processReferralCode(admin, data.user.id, body.referralCode.trim());

@@ -6,12 +6,14 @@ import { Menu, Bell, ChevronDown, User, LogOut } from "lucide-react";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { useWallet } from "@/lib/hooks/use-wallet";
 import { useUIStore } from "@/lib/stores/ui-store";
+import { useUnreadNotifications } from "@/lib/hooks/use-notifications";
 import { formatNaira } from "@/lib/utils/format";
 
 export function Topbar() {
   const { user, signOut } = useAuth();
   const { balance } = useWallet();
   const toggleSidebar = useUIStore((s) => s.toggleSidebar);
+  const { unreadCount } = useUnreadNotifications();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -67,8 +69,9 @@ export function Topbar() {
             aria-label="Notifications"
           >
             <Bell size={20} />
-            {/* Unread badge placeholder */}
-            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500" />
+            {unreadCount > 0 && (
+              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500" />
+            )}
           </Link>
 
           {/* User dropdown */}

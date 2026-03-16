@@ -1,9 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { logger } from "@/lib/utils/logger";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
     const {
@@ -14,7 +15,9 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Verify admin role
+    const rl = await checkRateLimit(`admin:${user.id}`, 30);
+    if (!rl.success) return rl.response!;
+
     const admin = createAdminClient();
     const { data: profile } = await admin
       .from("profiles")
@@ -26,7 +29,6 @@ export async function GET() {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Fetch stats in parallel
     const [usersRes, walletsRes, txnCountRes, txnSumRes, revenueRes] =
       await Promise.all([
         admin

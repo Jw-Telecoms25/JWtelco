@@ -13,8 +13,6 @@ export interface VerifyResponse {
   smartcard_number?: string;
 }
 
-// ── Capability-specific interfaces ──────────────────────────
-
 export interface AirtimeProvider {
   name: string;
   buyAirtime(params: {
@@ -73,8 +71,6 @@ export interface ExamPinProvider {
     reference: string;
   }): Promise<ProviderResponse>;
 }
-
-// ── Composite: full VTU provider (VTPass implements all) ────
 
 export type VTUProvider = AirtimeProvider &
   DataProvider &

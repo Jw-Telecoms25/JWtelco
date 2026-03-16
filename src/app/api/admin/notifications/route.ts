@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { checkRateLimit } from "@/lib/middleware/rate-limit";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
     const {
@@ -12,6 +13,9 @@ export async function GET() {
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const rl = await checkRateLimit(`admin:${user.id}`, 30);
+    if (!rl.success) return rl.response!;
 
     const admin = createAdminClient();
     const { data: profile } = await admin
@@ -51,6 +55,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const rl = await checkRateLimit(`admin:${user.id}`, 30);
+    if (!rl.success) return rl.response!;
+
     const admin = createAdminClient();
     const { data: profile } = await admin
       .from("profiles")
@@ -77,9 +84,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "User ID required for user target" }, { status: 400 });
     }
 
+    // Strip HTML tags and enforce length limits — prevent stored XSS via notification content
+    const stripHtml = (s: string) => s.replace(/<[^>]*>/g, "").trim();
+    const safeSubject = stripHtml(String(subject)).slice(0, 200);
+    const safeMessage = stripHtml(String(message)).slice(0, 2000);
+
+    if (!safeSubject || !safeMessage) {
+      return NextResponse.json({ error: "Subject and message must not be empty after sanitization" }, { status: 400 });
+    }
+
     const { error } = await admin.from("notifications").insert({
-      subject,
-      message,
+      subject: safeSubject,
+      message: safeMessage,
       target,
       user_id: target === "user" ? userId : null,
     });

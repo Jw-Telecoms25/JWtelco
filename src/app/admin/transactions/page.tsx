@@ -4,6 +4,8 @@ import { useEffect, useState, useCallback } from "react";
 import { Search, Loader2, Receipt } from "lucide-react";
 import { formatNaira, formatDate } from "@/lib/utils/format";
 import { TRANSACTION_TYPES, TRANSACTION_STATUS } from "@/lib/utils/constants";
+import { typeIcons, typeColors } from "@/lib/utils/transaction-display";
+import type { TransactionType } from "@/lib/services/types";
 import { useUIStore } from "@/lib/stores/ui-store";
 
 interface AdminTransaction {
@@ -142,7 +144,8 @@ export default function AdminTransactionsPage() {
                         : "Unknown"}
                     </td>
                     <td className="py-3 px-4">
-                      <span className="px-2 py-0.5 rounded-full text-xs bg-surface-elevated capitalize">
+                      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium capitalize ${typeColors[t.type as TransactionType] ?? "bg-gray-50 text-gray-600"}`}>
+                        {typeIcons[t.type as TransactionType]}
                         {t.type.replace("_", " ")}
                       </span>
                     </td>

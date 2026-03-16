@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { executeWithFallback } from "@/lib/providers/router";
 import { generateReference } from "@/lib/utils/reference";
 import { isValidPhone } from "@/lib/utils/validators";
-import { assertActiveUser, AccountBlockedError } from "@/lib/utils/guards";
+import { assertActiveUser, assertPinToken, AccountBlockedError } from "@/lib/utils/guards";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { logger } from "@/lib/utils/logger";
 import { notifyPurchaseSuccess, notifyPurchaseRefunded } from "@/lib/notifications/dispatcher";
@@ -36,6 +36,9 @@ export async function POST(request: NextRequest) {
     const admin = createAdminClient();
     await assertActiveUser(user.id, admin);
 
+    const pinCheck = await assertPinToken(request, user.id, admin);
+    if (pinCheck) return pinCheck;
+
     const body = await request.json();
     const { items } = body as { items: BulkItem[] };
 
@@ -46,7 +49,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `Maximum ${MAX_ITEMS} items per batch` }, { status: 400 });
     }
 
-    // Validate all items
     const validNetworks = ["mtn", "airtel", "glo", "9mobile"];
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
@@ -61,7 +63,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Check total wallet balance
     const totalCost = items.reduce((sum, i) => sum + i.amount, 0);
     const { data: wallet } = await admin
       .from("wallets")
@@ -77,7 +78,6 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Execute purchases sequentially to avoid wallet race conditions
     const results: { index: number; phone: string; status: string; reference: string; error?: string }[] = [];
 
     for (let i = 0; i < items.length; i++) {
@@ -85,7 +85,6 @@ export async function POST(request: NextRequest) {
       const reference = generateReference("BULK");
 
       try {
-        // Debit wallet
         const { data: txnId, error: walletError } = await admin.rpc("process_wallet_transaction", {
           p_user_id: user.id,
           p_amount: item.amount,
@@ -100,7 +99,6 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        // Call provider
         const result = await executeWithFallback(
           "airtime",
           item.network,
@@ -112,7 +110,6 @@ export async function POST(request: NextRequest) {
           await admin.from("transactions").update({ status: "success" }).eq("id", txnId);
           results.push({ index: i, phone: item.phone, status: "success", reference });
         } else {
-          // Refund
           const reversalRef = generateReference("REV");
           await admin.rpc("process_wallet_transaction", {
             p_user_id: user.id,
@@ -132,7 +129,6 @@ export async function POST(request: NextRequest) {
 
     const successCount = results.filter((r) => r.status === "success").length;
 
-    // Send one summary notification
     if (successCount > 0) {
       notifyPurchaseSuccess(admin, user.id, {
         type: "airtime",

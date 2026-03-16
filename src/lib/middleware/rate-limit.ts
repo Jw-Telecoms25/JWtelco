@@ -1,6 +1,7 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/utils/logger";
 
 let ratelimit: Ratelimit | null = null;
 
@@ -29,7 +30,14 @@ export async function checkRateLimit(
   const rl = getRatelimit();
 
   if (!rl) {
-    return { success: true };
+    logger.error({}, "Rate limiter unavailable — Redis not configured. Failing closed.");
+    return {
+      success: false,
+      response: NextResponse.json(
+        { error: "Service temporarily unavailable. Please try again." },
+        { status: 503 }
+      ),
+    };
   }
 
   const { success, limit, reset, remaining } = await rl.limit(identifier);

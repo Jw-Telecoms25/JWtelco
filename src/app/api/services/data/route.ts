@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { executeWithFallback } from "@/lib/providers/router";
 import { generateReference } from "@/lib/utils/reference";
 import { isValidPhone } from "@/lib/utils/validators";
-import { assertActiveUser, AccountBlockedError } from "@/lib/utils/guards";
+import { assertActiveUser, assertPinToken, AccountBlockedError } from "@/lib/utils/guards";
 import { executePurchase, getRolePrice } from "@/lib/services/purchase-executor";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { logger } from "@/lib/utils/logger";
@@ -26,6 +26,9 @@ export async function POST(request: NextRequest) {
     const admin = createAdminClient();
     await assertActiveUser(user.id, admin);
 
+    const pinCheck = await assertPinToken(request, user.id, admin);
+    if (pinCheck) return pinCheck;
+
     const body = await request.json();
     const { phone, network, planCode } = body;
 
@@ -46,7 +49,8 @@ export async function POST(request: NextRequest) {
       .eq("enabled", true)
       .single();
 
-    if (!plan) {
+    // Ensure the plan belongs to the data service — prevents cross-service plan code collision
+    if (!plan || (plan.services as { slug: string } | null)?.slug !== "data") {
       return NextResponse.json({ error: "Plan not found" }, { status: 404 });
     }
 

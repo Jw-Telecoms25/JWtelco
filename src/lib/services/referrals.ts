@@ -13,7 +13,6 @@ export async function processReferralCode(
   referralCode: string
 ): Promise<boolean> {
   try {
-    // Look up referrer
     const { data: referrer } = await admin
       .from("profiles")
       .select("id")
@@ -25,10 +24,8 @@ export async function processReferralCode(
       return false;
     }
 
-    // Don't let user refer themselves
     if (referrer.id === newUserId) return false;
 
-    // Set referred_by on new user
     await admin
       .from("profiles")
       .update({ referred_by: referrer.id })
@@ -50,7 +47,6 @@ export async function creditReferralBonus(
   userId: string
 ): Promise<void> {
   try {
-    // Check if user was referred
     const { data: profile } = await admin
       .from("profiles")
       .select("referred_by")
@@ -59,7 +55,6 @@ export async function creditReferralBonus(
 
     if (!profile?.referred_by) return;
 
-    // Check if bonus was already credited (look for existing referral_bonus transaction)
     const { data: existing } = await admin
       .from("transactions")
       .select("id")
@@ -68,9 +63,8 @@ export async function creditReferralBonus(
       .limit(1)
       .single();
 
-    if (existing) return; // Already credited
+    if (existing) return;
 
-    // Check this is their first successful non-funding, non-reversal transaction
     const { count } = await admin
       .from("transactions")
       .select("id", { count: "exact", head: true })
@@ -78,26 +72,30 @@ export async function creditReferralBonus(
       .eq("status", "success")
       .in("type", ["airtime", "data", "electricity", "cable", "exam_pin"]);
 
-    // Only credit on first purchase (count should be 1 — the one that just completed)
     if ((count ?? 0) > 1) return;
 
-    // Credit referee
+    // Deterministic references — idempotent even if called concurrently
+    // The unique constraint on (reference) in transactions will reject duplicates
+    const refereeRef = `REF-BONUS-REFEREE-${userId.slice(0, 8)}`;
+    const referrerRef = `REF-BONUS-REFERRER-${profile.referred_by.slice(0, 8)}-${userId.slice(0, 8)}`;
+
+    // Credit referee (unique index on this reference prevents double-credit)
     await admin.rpc("process_wallet_transaction", {
       p_user_id: userId,
       p_amount: REFERRAL_BONUS_KOBO,
       p_type: "referral_bonus",
       p_description: "Referral bonus — welcome reward",
-      p_reference: `REF-BONUS-${userId.slice(0, 8)}-${Date.now()}`,
+      p_reference: refereeRef,
       p_metadata: { bonus_type: "referee", referrer_id: profile.referred_by },
     });
 
-    // Credit referrer
+    // Credit referrer (unique reference prevents double-credit even on concurrent calls)
     await admin.rpc("process_wallet_transaction", {
       p_user_id: profile.referred_by,
       p_amount: REFERRAL_BONUS_KOBO,
       p_type: "referral_bonus",
       p_description: "Referral bonus — your invite made a purchase",
-      p_reference: `REF-BONUS-${profile.referred_by.slice(0, 8)}-${Date.now()}`,
+      p_reference: referrerRef,
       p_metadata: { bonus_type: "referrer", referee_id: userId },
     });
 

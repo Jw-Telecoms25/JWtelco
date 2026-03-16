@@ -11,10 +11,7 @@ export function WalletCard() {
 
   return (
     <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-navy to-accent-dim p-6 text-white">
-      {/* Glass overlay */}
       <div className="absolute inset-0 bg-white/5 backdrop-blur-sm" />
-
-      {/* Decorative circle */}
       <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white/5" />
       <div className="absolute -bottom-6 -left-6 w-24 h-24 rounded-full bg-white/5" />
 

@@ -46,8 +46,11 @@ export async function GET() {
     }
 
     const reference = generateReference("VA");
-    const origin = process.env.NEXT_PUBLIC_SITE_URL || "https://jwtelecoms.com.ng";
-    const webhookUrl = `${origin}/api/webhooks/aspfiy`;
+    const origin = process.env.NEXT_PUBLIC_SITE_URL || "https://jwtelecoms.vercel.app";
+    const webhookToken = process.env.ASPFIY_WEBHOOK_TOKEN;
+    const webhookUrl = webhookToken
+      ? `${origin}/api/webhooks/aspfiy?t=${webhookToken}`
+      : `${origin}/api/webhooks/aspfiy`;
 
     const result = await reserveAccount({
       email: user.email!,

@@ -79,8 +79,6 @@ function mapDisco(disco: string): string {
 export const vtpassProvider: VTUProvider = {
   name: "vtpass",
 
-  // ── Electricity ──────────────────────────────────────────────
-
   async verifyMeter({ meterNumber, disco, meterType }): Promise<VerifyResponse> {
     const serviceID = mapDisco(disco);
     const res = await vtpassFetch(`${BASE_URL}/merchant-verify`, {
@@ -141,7 +139,6 @@ export const vtpassProvider: VTUProvider = {
       };
     }
 
-    // Handle pending/delivered
     if (txStatus === "delivered") {
       return {
         success: true,
@@ -164,8 +161,6 @@ export const vtpassProvider: VTUProvider = {
       data: { vtpass_request_id: requestId, status: "pending", raw: data, isPending: true },
     };
   },
-
-  // ── Cable TV ─────────────────────────────────────────────────
 
   async verifySmartcard({ smartcardNumber, provider }): Promise<VerifyResponse> {
     const res = await vtpassFetch(`${BASE_URL}/merchant-verify`, {
@@ -255,8 +250,6 @@ export const vtpassProvider: VTUProvider = {
     };
   },
 
-  // ── Airtime (fallback for sub-resellers) ────────────────────
-
   async buyAirtime({ phone, network, amount, reference }): Promise<ProviderResponse> {
     const networkMap: Record<string, string> = {
       mtn: "mtn", airtel: "airtel", glo: "glo", "9mobile": "etisalat",
@@ -306,8 +299,6 @@ export const vtpassProvider: VTUProvider = {
     };
   },
 
-  // ── Data (fallback for sub-resellers) ──────────────────────
-
   async buyData({ phone, network, planCode, reference }): Promise<ProviderResponse> {
     const networkMap: Record<string, string> = {
       mtn: "mtn-data", airtel: "airtel-data", glo: "glo-data", "9mobile": "etisalat-data",
@@ -356,8 +347,6 @@ export const vtpassProvider: VTUProvider = {
       data: { vtpass_request_id: requestId, isPending: true, raw: data },
     };
   },
-
-  // ── Exam Pins ──────────────────────────────────────────────
 
   async buyExamPin({ examType, quantity, reference }): Promise<ProviderResponse> {
     const serviceMap: Record<string, string> = {

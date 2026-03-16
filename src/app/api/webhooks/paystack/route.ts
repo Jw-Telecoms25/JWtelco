@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyWebhookSignature } from "@/lib/providers/paystack";
+import { notifyWalletFunded } from "@/lib/notifications/dispatcher";
 import { logger } from "@/lib/utils/logger";
 
 export async function POST(request: NextRequest) {
@@ -46,7 +47,6 @@ export async function POST(request: NextRequest) {
 
   const userId = session.user_id;
 
-  // Deterministic reference to prevent double-credit
   const fundRef = `FUND-PSK-${reference}`;
 
   const { data: txnId, error: walletError } = await admin.rpc(
@@ -85,7 +85,11 @@ export async function POST(request: NextRequest) {
     .update({ status: "success" })
     .eq("id", session.id);
 
-  // Audit trail
+  notifyWalletFunded(admin, userId, {
+    amount,
+    channel: event.data.channel || "paystack",
+  });
+
   await admin.from("webhook_events").insert({
     gateway: "paystack",
     event_type: event.event,

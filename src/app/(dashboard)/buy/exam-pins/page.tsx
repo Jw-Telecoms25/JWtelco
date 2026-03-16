@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import ServiceForm from "@/components/dashboard/ServiceForm";
+import { ProviderLogo } from "@/components/ui/ProviderLogo";
 import { EXAM_TYPES } from "@/lib/utils/constants";
 import { formatNaira } from "@/lib/utils/format";
 import { usePricing } from "@/lib/hooks/use-services";
@@ -59,12 +60,14 @@ export default function BuyExamPinsPage() {
               key={e.id}
               type="button"
               onClick={() => setExamType(e.id)}
-              className={`p-3 rounded-xl border text-center text-sm font-medium transition-all ${
+              className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border text-center text-sm font-medium transition-all ${
                 examType === e.id
-                  ? "border-accent bg-accent/10 text-accent"
+                  ? "border-current bg-[color-mix(in_srgb,currentColor_10%,transparent)]"
                   : "border-border hover:border-muted"
               }`}
+              style={examType === e.id ? { color: e.color } : undefined}
             >
+              <ProviderLogo id={e.id} name={e.name} color={e.color} />
               {e.name}
             </button>
           ))}

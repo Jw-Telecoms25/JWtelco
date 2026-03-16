@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Mail, Lock, Phone, Loader2, Eye, EyeOff } from "lucide-react";
-import { loginUser, lookupEmailByPhone } from "@/lib/services/auth";
+import { loginUser, loginByPhone } from "@/lib/services/auth";
 import { createClient } from "@/lib/supabase/client";
 import { useUIStore } from "@/lib/stores/ui-store";
 
@@ -85,35 +85,24 @@ export function LoginForm() {
     setLoading(true);
 
     try {
-      let loginEmail = email;
+      let destination = "/dashboard";
 
       if (mode === "phone") {
-        const found = await lookupEmailByPhone(phone.replace(/\s/g, ""));
-        if (!found) {
-          addToast({
-            type: "error",
-            title: "Login failed",
-            message: "Invalid phone number or password",
-          });
-          setLoading(false);
-          return;
-        }
-        loginEmail = found;
-      }
-
-      const loginData = await loginUser({ email: loginEmail, password });
-
-      // Check role to redirect admins to admin panel
-      let destination = "/dashboard";
-      if (loginData.user) {
-        const supabase = createClient();
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", loginData.user.id)
-          .single();
-        if (profile && ["admin", "super_admin"].includes(profile.role)) {
-          destination = "/admin";
+        // Auth is fully server-side for phone login — email never sent to client
+        const result = await loginByPhone({ phone: phone.replace(/\s/g, ""), password });
+        if (["admin", "super_admin"].includes(result.role)) destination = "/admin";
+      } else {
+        const loginData = await loginUser({ email, password });
+        if (loginData.user) {
+          const supabase = createClient();
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", loginData.user.id)
+            .single();
+          if (profile && ["admin", "super_admin"].includes(profile.role)) {
+            destination = "/admin";
+          }
         }
       }
 

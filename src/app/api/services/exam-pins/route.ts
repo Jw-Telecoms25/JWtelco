@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { executeWithFallback } from "@/lib/providers/router";
 import { generateReference } from "@/lib/utils/reference";
-import { assertActiveUser, AccountBlockedError } from "@/lib/utils/guards";
+import { assertActiveUser, assertPinToken, AccountBlockedError } from "@/lib/utils/guards";
 import { getRolePrice } from "@/lib/services/purchase-executor";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { logger } from "@/lib/utils/logger";
@@ -26,6 +26,9 @@ export async function POST(request: NextRequest) {
     const admin = createAdminClient();
     await assertActiveUser(user.id, admin);
 
+    const pinCheck = await assertPinToken(request, user.id, admin);
+    if (pinCheck) return pinCheck;
+
     const body = await request.json();
     const { examType, quantity = 1 } = body;
 
@@ -36,7 +39,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Quantity must be 1-5" }, { status: 400 });
     }
 
-    // Filter by service to avoid collisions with telecom networks
     const { data: plans } = await admin
       .from("pricing")
       .select("*, services!inner(slug)")
@@ -61,7 +63,6 @@ export async function POST(request: NextRequest) {
     const reference = generateReference("EXAM");
     const idempotencyKey = request.headers.get("x-idempotency-key") || undefined;
 
-    // Idempotency check
     if (idempotencyKey) {
       const { data: existing } = await admin
         .from("transactions")

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Phone } from "lucide-react";
 import ServiceForm from "@/components/dashboard/ServiceForm";
+import { ProviderLogo } from "@/components/ui/ProviderLogo";
 import { NETWORKS } from "@/lib/utils/constants";
 import { formatNaira } from "@/lib/utils/format";
 import { isValidPhone } from "@/lib/utils/validators";
@@ -64,12 +65,14 @@ export default function BuyDataPage() {
                 setNetwork(n.id);
                 setPlanCode("");
               }}
-              className={`p-3 rounded-xl border text-center text-sm font-medium transition-all ${
+              className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border text-center text-sm font-medium transition-all ${
                 network === n.id
-                  ? "border-accent bg-accent/10 text-accent"
+                  ? "border-current bg-[color-mix(in_srgb,currentColor_10%,transparent)]"
                   : "border-border hover:border-muted"
               }`}
+              style={network === n.id ? { color: n.color } : undefined}
             >
+              <ProviderLogo id={n.id} name={n.name} color={n.color} />
               {n.name}
             </button>
           ))}

@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { executeWithFallback } from "@/lib/providers/router";
 import { generateReference } from "@/lib/utils/reference";
 import { isValidMeterNumber } from "@/lib/utils/validators";
-import { assertActiveUser, AccountBlockedError } from "@/lib/utils/guards";
+import { assertActiveUser, assertPinToken, AccountBlockedError } from "@/lib/utils/guards";
 import { DISCOS } from "@/lib/utils/constants";
 import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { logger } from "@/lib/utils/logger";
@@ -29,6 +29,9 @@ export async function POST(request: NextRequest) {
     const admin = createAdminClient();
     await assertActiveUser(user.id, admin);
 
+    const pinCheck = await assertPinToken(request, user.id, admin);
+    if (pinCheck) return pinCheck;
+
     const body = await request.json();
     const { meterNumber, disco, meterType, amount } = body;
 
@@ -48,7 +51,6 @@ export async function POST(request: NextRequest) {
     const reference = generateReference("ELEC");
     const idempotencyKey = request.headers.get("x-idempotency-key") || undefined;
 
-    // Idempotency check
     if (idempotencyKey) {
       const { data: existing } = await admin
         .from("transactions")
@@ -68,7 +70,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Debit wallet
     const { data: txnId, error: walletError } = await admin.rpc(
       "process_wallet_transaction",
       {
@@ -92,7 +93,6 @@ export async function POST(request: NextRequest) {
       await admin.from("transactions").update({ idempotency_key: idempotencyKey }).eq("id", txnId);
     }
 
-    // Call provider with fallback (VTPass → Maskawasub)
     const result = await executeWithFallback(
       "electricity",
       disco,
@@ -122,7 +122,6 @@ export async function POST(request: NextRequest) {
       });
       await admin.from("transactions").update({ status: "success" }).eq("reference", reversalRef);
 
-      // Notify user of refund
       notifyPurchaseRefunded(admin, user.id, {
         type: "electricity",
         description: `Electricity ${meterType} - ${disco} - Meter: ${meterNumber}`,
@@ -146,7 +145,6 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Notify user of success
     notifyPurchaseSuccess(admin, user.id, {
       type: "electricity",
       description: `Electricity ${meterType} - ${disco} - Meter: ${meterNumber}`,

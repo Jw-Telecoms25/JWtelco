@@ -35,8 +35,9 @@ export async function POST(request: NextRequest) {
     }
 
     const reference = generateReference("FUND");
-    const origin = request.headers.get("origin") || request.nextUrl.origin;
-    const callback_url = `${origin}/wallet?reference=${reference}`;
+    // Use server-side env var — never trust the Origin header to avoid open redirect
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://jwtelecoms.vercel.app";
+    const callback_url = `${siteUrl}/wallet?reference=${reference}`;
 
     const paystack = await initializeTransaction({
       email: user.email!,

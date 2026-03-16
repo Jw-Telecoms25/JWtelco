@@ -1,4 +1,4 @@
-import { createHmac } from "crypto";
+import { createHmac, timingSafeEqual } from "crypto";
 
 const BASE_URL = "https://api.paystack.co";
 const SECRET_KEY = process.env.PAYSTACK_SECRET_KEY || "";
@@ -78,5 +78,9 @@ export async function verifyTransaction(reference: string): Promise<PaystackVeri
 export function verifyWebhookSignature(body: string, signature: string): boolean {
   if (!SECRET_KEY || !signature) return false;
   const hash = createHmac("sha512", SECRET_KEY).update(body).digest("hex");
-  return hash === signature;
+  try {
+    return timingSafeEqual(Buffer.from(hash, "hex"), Buffer.from(signature, "hex"));
+  } catch {
+    return false;
+  }
 }

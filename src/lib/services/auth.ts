@@ -62,14 +62,18 @@ export async function resetPassword(email: string) {
   if (error) throw error;
 }
 
-export async function lookupEmailByPhone(phone: string): Promise<string | null> {
+/**
+ * Login by phone — auth happens server-side, email is never exposed.
+ * Returns the user's role on success (for redirect), throws on failure.
+ */
+export async function loginByPhone(params: { phone: string; password: string }): Promise<{ role: string }> {
   const res = await fetch("/api/auth/login-by-phone", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ phone }),
+    body: JSON.stringify({ phone: params.phone, password: params.password }),
   });
 
-  if (!res.ok) return null;
   const data = await res.json();
-  return data.email ?? null;
+  if (!res.ok) throw new Error(data.error || "Invalid phone number or password");
+  return { role: data.role };
 }

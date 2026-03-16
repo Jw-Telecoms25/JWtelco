@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { maskawasubProvider } from "@/lib/providers/vtu-reseller";
+import { maskawasubProvider, gladtidingsProvider, alrahuzProvider } from "@/lib/providers/vtu-reseller";
 import { generateReference } from "@/lib/utils/reference";
+import { notifyPurchaseRefunded } from "@/lib/notifications/dispatcher";
 import { logger } from "@/lib/utils/logger";
 
 const CRON_SECRET = process.env.CRON_SECRET || "";
@@ -54,7 +55,6 @@ export async function GET(request: NextRequest) {
           .update({ status: "failed", metadata: { ...txn.metadata, requery_result: result } })
           .eq("id", txn.id);
 
-        // Reverse wallet debit
         const reversalRef = generateReference("REV");
         await admin.rpc("process_wallet_transaction", {
           p_user_id: txn.user_id,
@@ -65,6 +65,14 @@ export async function GET(request: NextRequest) {
           p_metadata: { original_reference: txn.reference, reason: "requery_confirmed_failure" },
         });
         await admin.from("transactions").update({ status: "success" }).eq("reference", reversalRef);
+
+        notifyPurchaseRefunded(admin, txn.user_id, {
+          type: txn.type,
+          description: `Auto-reversal for failed ${txn.type}`,
+          amount: txn.amount,
+          reference: txn.reference,
+        });
+
         resolved++;
       } else {
         stillPending++;
@@ -96,7 +104,6 @@ async function requeryTransaction(
   const providerUsed = (txn.metadata?.provider_used as string) || "";
   const providerResponse = txn.metadata?.providerResponse as Record<string, unknown> | undefined;
 
-  // VTPass requery
   if (providerUsed === "vtpass" || providerUsed.startsWith("VTPass")) {
     const requestId =
       (providerResponse?.data as Record<string, unknown>)?.vtpass_request_id as string ||
@@ -109,7 +116,6 @@ async function requeryTransaction(
     return await requeryVtpass(requestId);
   }
 
-  // Sub-reseller requery (Maskawasub, Gladtidings, Alrahuz)
   const txnIdFromProvider =
     (providerResponse?.data as Record<string, unknown>)?.id as string ||
     (providerResponse?.id as string);
@@ -150,8 +156,13 @@ async function requeryReseller(
   txnId: string
 ): Promise<{ status: "success" | "failed" | "pending"; raw?: unknown }> {
   try {
-    // All sub-resellers use the same queryTransaction pattern
-    const result = await maskawasubProvider.queryTransaction(txnId);
+    // Route to the correct provider — previously all used Maskawasub (bug)
+    let provider = maskawasubProvider;
+    const name = providerName.toLowerCase();
+    if (name.includes("gladtidings")) provider = gladtidingsProvider;
+    else if (name.includes("alrahuz")) provider = alrahuzProvider;
+
+    const result = await provider.queryTransaction(txnId);
 
     if (result.success) return { status: "success", raw: result };
     if (result.data?.isPending) return { status: "pending", raw: result };

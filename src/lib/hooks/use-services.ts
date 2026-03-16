@@ -31,7 +31,6 @@ export function usePricing(serviceSlug: string, network?: string) {
   useEffect(() => {
     async function load() {
       setIsLoading(true);
-      // First get service ID
       const { data: service } = await supabase
         .from("services")
         .select("id")

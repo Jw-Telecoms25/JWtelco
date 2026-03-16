@@ -50,15 +50,15 @@ export const DISCOS = [
 ] as const;
 
 export const CABLE_PROVIDERS = [
-  { id: "dstv", name: "DStv" },
-  { id: "gotv", name: "GOtv" },
-  { id: "startimes", name: "StarTimes" },
+  { id: "dstv", name: "DStv", color: "#1E3A8A" },
+  { id: "gotv", name: "GOtv", color: "#65A30D" },
+  { id: "startimes", name: "StarTimes", color: "#EA580C" },
 ] as const;
 
 export const EXAM_TYPES = [
-  { id: "waec", name: "WAEC" },
-  { id: "neco", name: "NECO" },
-  { id: "nabteb", name: "NABTEB" },
+  { id: "waec", name: "WAEC", color: "#16A34A" },
+  { id: "neco", name: "NECO", color: "#2563EB" },
+  { id: "nabteb", name: "NABTEB", color: "#166534" },
 ] as const;
 
 export const MIN_FUNDING_AMOUNT = 100; // ₦100 in Naira

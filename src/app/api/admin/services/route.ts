@@ -75,7 +75,6 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Service ID required" }, { status: 400 });
     }
 
-    // Only allow safe fields
     const allowed = ["name", "enabled", "provider", "provider_config", "description"];
     const safeUpdates: Record<string, unknown> = {};
     for (const key of allowed) {
@@ -91,7 +90,6 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Failed to update service" }, { status: 500 });
     }
 
-    // Audit
     await admin.from("audit_log").insert({
       admin_id: user.id,
       action: "update_service",

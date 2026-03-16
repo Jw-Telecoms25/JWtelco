@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { checkRateLimit } from "@/lib/middleware/rate-limit";
 import { logger } from "@/lib/utils/logger";
 
 export async function GET(request: NextRequest) {
@@ -13,6 +14,9 @@ export async function GET(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const rl = await checkRateLimit(`admin:${user.id}`, 30);
+    if (!rl.success) return rl.response!;
 
     const admin = createAdminClient();
     const { data: profile } = await admin
@@ -33,6 +37,7 @@ export async function GET(request: NextRequest) {
     let query = admin
       .from("profiles")
       .select("*, wallets(balance, type)", { count: "exact" })
+      .not("role", "in", '("admin","super_admin")')
       .order("created_at", { ascending: false })
       .range(page * limit, (page + 1) * limit - 1);
 
@@ -95,7 +100,6 @@ export async function PATCH(request: NextRequest) {
         return NextResponse.json({ error: "Failed to update user" }, { status: 500 });
       }
 
-      // Audit log
       await admin.from("audit_log").insert({
         admin_id: user.id,
         action: `${action}_user`,
@@ -136,13 +140,11 @@ export async function PATCH(request: NextRequest) {
         return NextResponse.json({ error: error.message }, { status: 400 });
       }
 
-      // Mark as success
       await admin
         .from("transactions")
         .update({ status: "success" })
         .eq("reference", reference);
 
-      // Audit log
       await admin.from("audit_log").insert({
         admin_id: user.id,
         action: `${action}_wallet`,

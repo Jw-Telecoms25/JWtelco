@@ -1,48 +1,80 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createHash } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logger } from "@/lib/utils/logger";
 import { notifyWalletFunded } from "@/lib/notifications/dispatcher";
+
+/**
+ * Aspfiy signature: x-wiaxy-signature = MD5(secret_key) — static per-merchant, not per-request.
+ * Source: https://aspfiy.readme.io/reference/webhooks
+ */
+function verifyAspfiySignature(request: NextRequest, secretKey: string): boolean {
+  const incoming = request.headers.get("x-wiaxy-signature");
+  if (!incoming) return false;
+  const expected = createHash("md5").update(secretKey).digest("hex");
+  return incoming === expected;
+}
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const admin = createAdminClient();
 
-    // Verify webhook signature
-    const aspfiySecret = process.env.ASPFIY_WEBHOOK_SECRET;
-    if (aspfiySecret) {
-      const incomingSecret =
-        request.headers.get("x-aspfiy-secret") ||
-        request.headers.get("authorization")?.replace("Bearer ", "");
-
-      if (incomingSecret !== aspfiySecret) {
-        logger.warn({}, "Aspfiy webhook: invalid or missing signature");
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // Layer 1: URL path token — attacker who doesn't know the URL gets 404, not 401
+    // Register webhook as: https://jwtelecoms.vercel.app/api/webhooks/aspfiy?t=<ASPFIY_WEBHOOK_TOKEN>
+    const webhookToken = process.env.ASPFIY_WEBHOOK_TOKEN;
+    if (webhookToken) {
+      const providedToken = request.nextUrl.searchParams.get("t");
+      if (providedToken !== webhookToken) {
+        // Return 404 — do not reveal that this endpoint exists
+        return new NextResponse(null, { status: 404 });
       }
-    } else {
-      logger.warn({}, "Aspfiy webhook: ASPFIY_WEBHOOK_SECRET not configured — accepting all requests");
     }
 
-    const signatureValid = !!aspfiySecret;
+    // Layer 2: x-wiaxy-signature header = MD5(secret_key)
+    const secretKey = process.env.ASPFIY_SECRET_KEY;
+    if (!secretKey) {
+      logger.error({}, "Aspfiy webhook: ASPFIY_SECRET_KEY not configured");
+      return NextResponse.json({ error: "Webhook not configured" }, { status: 500 });
+    }
 
-    const {
-      reference,
-      amount,
-      status,
-      accountNumber,
-      senderName,
-      sessionId,
-    } = body;
+    const signatureValid = verifyAspfiySignature(request, secretKey);
+    if (!signatureValid) {
+      logger.warn({}, "Aspfiy webhook: invalid or missing x-wiaxy-signature");
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    const eventRef = sessionId || reference || `aspfiy-${Date.now()}`;
-
-    if (status !== "successful" && status !== "success") {
+    // Only process payment notifications — ignore disbursements etc.
+    // Note: Aspfiy docs have a typo "PAYMENT_NOTIFIFICATION" (double-F) — handle both
+    const event = body?.event;
+    const isPaymentEvent = event === "PAYMENT_NOTIFICATION" || event === "PAYMENT_NOTIFIFICATION";
+    if (!isPaymentEvent) {
       await admin.from("webhook_events").insert({
         gateway: "aspfiy",
-        event_type: status || "unknown",
-        event_id: eventRef,
+        event_type: event || "unknown",
+        event_id: `aspfiy-${Date.now()}`,
         payload: body,
-        signature_valid: signatureValid,
+        signature_valid: true,
+        processed: false,
+      });
+      return NextResponse.json({ received: true });
+    }
+
+    const data = body?.data;
+    const txnRef = data?.reference;
+    const accountNumber = data?.account?.account_number;
+    const amountNaira = typeof data?.amount === "number" ? data.amount : parseFloat(data?.amount || "0");
+    const senderName =
+      `${data?.payer?.first_name || ""} ${data?.payer?.last_name || ""}`.trim() || "Unknown";
+
+    if (!txnRef || !accountNumber || amountNaira <= 0) {
+      logger.error({ txnRef, accountNumber, amountNaira }, "Aspfiy webhook: missing required fields");
+      await admin.from("webhook_events").insert({
+        gateway: "aspfiy",
+        event_type: "PAYMENT_NOTIFICATION",
+        event_id: txnRef || `aspfiy-${Date.now()}`,
+        payload: body,
+        signature_valid: true,
         processed: false,
       });
       return NextResponse.json({ received: true });
@@ -52,7 +84,7 @@ export async function POST(request: NextRequest) {
       .from("webhook_events")
       .select("id")
       .eq("gateway", "aspfiy")
-      .eq("event_id", eventRef)
+      .eq("event_id", txnRef)
       .eq("processed", true)
       .limit(1)
       .single();
@@ -61,40 +93,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ received: true, message: "Already processed" });
     }
 
-    const lookupRef = reference || accountNumber;
-    if (!lookupRef) {
-      logger.error({}, "Aspfiy webhook: no reference or accountNumber to look up user");
-      return NextResponse.json({ received: true });
-    }
-
     const { data: session } = await admin
       .from("payment_sessions")
       .select("*")
       .eq("gateway", "aspfiy")
-      .eq("gateway_reference", lookupRef)
+      .eq("gateway_reference", accountNumber)
+      .limit(1)
       .single();
 
     if (!session) {
-      logger.error({ detail: lookupRef }, "Aspfiy webhook: no session for reference");
+      logger.error({ accountNumber }, "Aspfiy webhook: no session for account number");
       await admin.from("webhook_events").insert({
         gateway: "aspfiy",
-        event_type: "charge.success",
-        event_id: eventRef,
+        event_type: "PAYMENT_NOTIFICATION",
+        event_id: txnRef,
         payload: body,
-        signature_valid: signatureValid,
+        signature_valid: true,
         processed: false,
       });
       return NextResponse.json({ received: true });
     }
 
-    if (session.status === "success") {
-      return NextResponse.json({ received: true, message: "Already processed" });
-    }
+    // Aspfiy sends amount in Naira — convert to kobo for internal storage
+    // ASSUMPTION: amount is Naira. If payments look 100x wrong, flip this.
+    const amountKobo = Math.round(amountNaira * 100);
 
-    const amountKobo = Math.round((amount || 0) * 100);
-
-    // Deterministic reference to prevent double-credit
-    const fundRef = `FUND-ASPFIY-${eventRef}`;
+    const fundRef = `FUND-ASPFIY-${txnRef}`;
 
     const { data: txnId, error: walletError } = await admin.rpc(
       "process_wallet_transaction",
@@ -106,16 +130,15 @@ export async function POST(request: NextRequest) {
         p_reference: fundRef,
         p_metadata: {
           gateway: "aspfiy",
-          gateway_reference: eventRef,
-          sender_name: senderName,
+          aspfiy_reference: txnRef,
           account_number: accountNumber,
-          amount_naira: amount,
+          sender_name: senderName,
+          amount_naira: amountNaira,
         },
       }
     );
 
     if (walletError) {
-      // Supabase errors are PostgrestError objects, not Error instances
       if (walletError.message?.includes("duplicate")) {
         return NextResponse.json({ received: true, message: "Already processed" });
       }
@@ -124,20 +147,19 @@ export async function POST(request: NextRequest) {
     }
 
     await admin.from("transactions").update({ status: "success" }).eq("id", txnId);
-    await admin.from("payment_sessions").update({ status: "success" }).eq("id", session.id);
+    // NOTE: do NOT mark payment_session as "success" — virtual accounts receive unlimited payments
 
     notifyWalletFunded(admin, session.user_id, {
       amount: amountKobo,
       channel: "bank_transfer",
     });
 
-    // Audit trail
     await admin.from("webhook_events").insert({
       gateway: "aspfiy",
-      event_type: "charge.success",
-      event_id: eventRef,
+      event_type: "PAYMENT_NOTIFICATION",
+      event_id: txnRef,
       payload: body,
-      signature_valid: signatureValid,
+      signature_valid: true,
       processed: true,
       processed_at: new Date().toISOString(),
     });

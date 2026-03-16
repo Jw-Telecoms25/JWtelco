@@ -28,12 +28,12 @@ interface PurchaseResult {
 export async function executePurchase(params: PurchaseParams): Promise<PurchaseResult> {
   const { admin, userId, price, costPrice, type, description, reference, metadata, idempotencyKey, execute, buildSuccessResponse } = params;
 
-  // 0. Idempotency check — if this key was already used, return the existing result
   if (idempotencyKey) {
     const { data: existing } = await admin
       .from("transactions")
       .select("id, status, reference")
       .eq("idempotency_key", idempotencyKey)
+      .eq("user_id", userId)  // Scope to user — prevents IDOR via idempotency key
       .single();
 
     if (existing) {
@@ -51,11 +51,9 @@ export async function executePurchase(params: PurchaseParams): Promise<PurchaseR
           status: existing.status as "success" | "processing",
         };
       }
-      // If previous attempt failed, allow retry with same key
     }
   }
 
-  // 1. Debit wallet
   const txnMetadata = idempotencyKey
     ? { ...metadata, idempotency_key: idempotencyKey }
     : metadata;
@@ -72,7 +70,6 @@ export async function executePurchase(params: PurchaseParams): Promise<PurchaseR
     }
   );
 
-  // Store idempotency key on the transaction row
   if (txnId && idempotencyKey) {
     await admin
       .from("transactions")
@@ -90,12 +87,10 @@ export async function executePurchase(params: PurchaseParams): Promise<PurchaseR
     };
   }
 
-  // 2. Call provider
   const result = await execute();
   const isPending = result.data?.isPending === true;
   const profit = result.success ? price - costPrice : 0;
 
-  // 3. Update transaction
   await admin
     .from("transactions")
     .update({
@@ -105,7 +100,6 @@ export async function executePurchase(params: PurchaseParams): Promise<PurchaseR
     })
     .eq("id", txnId);
 
-  // 4. Failed (not pending) → reverse wallet
   if (!result.success && !isPending) {
     const reversalRef = generateReference("REV");
     await admin.rpc("process_wallet_transaction", {
@@ -130,7 +124,6 @@ export async function executePurchase(params: PurchaseParams): Promise<PurchaseR
     };
   }
 
-  // 5. Pending
   if (isPending) {
     return {
       response: NextResponse.json({
@@ -145,7 +138,6 @@ export async function executePurchase(params: PurchaseParams): Promise<PurchaseR
     };
   }
 
-  // 6. Success
   const extra = buildSuccessResponse ? buildSuccessResponse(txnId, result) : {};
 
   notifyPurchaseSuccess(admin, userId, {
@@ -156,7 +148,6 @@ export async function executePurchase(params: PurchaseParams): Promise<PurchaseR
     token: result.data?.token as string | undefined,
   });
 
-  // Credit referral bonus on first purchase (fire-and-forget)
   creditReferralBonus(admin, userId).catch(() => {});
 
   return {

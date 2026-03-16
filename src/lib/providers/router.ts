@@ -2,7 +2,36 @@ import { maskawasubProvider, gladtidingsProvider, alrahuzProvider } from "./vtu-
 import type { ResellerProvider } from "./vtu-reseller";
 import { vtpassProvider } from "./vtpass";
 import type { ProviderResponse } from "./types";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { logger } from "@/lib/utils/logger";
+
+async function checkProviderHealthy(providerName: string, serviceType: string): Promise<boolean> {
+  try {
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from("provider_health")
+      .select("is_healthy")
+      .eq("provider_name", providerName)
+      .eq("service_type", serviceType)
+      .single();
+    return data?.is_healthy !== false; // Default healthy if no record
+  } catch {
+    return true; // Default healthy on error
+  }
+}
+
+async function recordProviderResult(providerName: string, serviceType: string, success: boolean): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    await admin.rpc("update_provider_health", {
+      p_provider: providerName,
+      p_service_type: serviceType,
+      p_success: success,
+    });
+  } catch {
+    // Non-critical — don't fail the purchase
+  }
+}
 
 type ServiceType = "airtime" | "data" | "electricity" | "cable" | "exam_pin";
 
@@ -11,22 +40,15 @@ interface ProviderRoute {
   networks?: string[];
 }
 
-// ── Airtime: Maskawasub primary → VTPass fallback ────────────
-
 const AIRTIME_ROUTES: ProviderRoute[] = [
   { provider: maskawasubProvider },
 ];
-
-// ── Data: network-specific primary → VTPass fallback ─────────
 
 const DATA_ROUTES: ProviderRoute[] = [
   { provider: gladtidingsProvider, networks: ["mtn"] },
   { provider: alrahuzProvider, networks: ["airtel", "glo", "9mobile"] },
 ];
 
-// ── Electricity/Cable/Exam: VTPass primary → Maskawasub fallback
-
-// VTPass as a reseller-shaped wrapper for the router
 const vtpassAsReseller: ResellerProvider = vtpassProvider as unknown as ResellerProvider;
 
 function getPrimary(serviceType: ServiceType, network: string): ResellerProvider {
@@ -65,27 +87,53 @@ export async function executeWithFallback(
   const primary = getPrimary(serviceType, network);
   const fallback = getFallback(serviceType);
 
+  const primaryHealthy = await checkProviderHealthy(primary.name, serviceType);
+  if (!primaryHealthy && primary.name !== fallback.name) {
+    logger.warn({ primary: primary.name, fallback: fallback.name, reference }, "Circuit breaker: primary unhealthy, routing to fallback");
+    try {
+      const fallbackResult = await execute(fallback);
+      await recordProviderResult(fallback.name, serviceType, fallbackResult.success || !!fallbackResult.data?.isPending);
+      return { ...fallbackResult, provider_used: fallback.name };
+    } catch (err) {
+      await recordProviderResult(fallback.name, serviceType, false);
+      return {
+        success: false,
+        reference,
+        message: `All providers failed for ${serviceType}`,
+        data: { error: err instanceof Error ? err.message : "Unknown error" },
+        provider_used: fallback.name,
+      };
+    }
+  }
+
   try {
     const result = await execute(primary);
-    if (result.success || result.data?.isPending) {
+    const ok = result.success || !!result.data?.isPending;
+    await recordProviderResult(primary.name, serviceType, ok);
+
+    if (ok) {
       return { ...result, provider_used: primary.name };
     }
 
     if (primary.name !== fallback.name) {
       logger.warn({ primary: primary.name, fallback: fallback.name, reference }, "Primary provider failed, trying fallback");
       const fallbackResult = await execute(fallback);
+      await recordProviderResult(fallback.name, serviceType, fallbackResult.success || !!fallbackResult.data?.isPending);
       return { ...fallbackResult, provider_used: fallback.name };
     }
 
     return { ...result, provider_used: primary.name };
   } catch (err) {
+    await recordProviderResult(primary.name, serviceType, false);
     logger.error({ primary: primary.name, reference, error: err instanceof Error ? err.message : "Unknown" }, "Primary provider threw");
 
     if (primary.name !== fallback.name) {
       try {
         const fallbackResult = await execute(fallback);
+        await recordProviderResult(fallback.name, serviceType, fallbackResult.success || !!fallbackResult.data?.isPending);
         return { ...fallbackResult, provider_used: fallback.name };
       } catch (fallbackErr) {
+        await recordProviderResult(fallback.name, serviceType, false);
         logger.error({ fallback: fallback.name, reference, error: fallbackErr instanceof Error ? fallbackErr.message : "Unknown" }, "Fallback provider also threw");
       }
     }

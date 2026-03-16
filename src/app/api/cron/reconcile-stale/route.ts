@@ -16,7 +16,6 @@ export async function GET(request: NextRequest) {
   const admin = createAdminClient();
   const staleCutoff = new Date(Date.now() - STALE_MINUTES * 60 * 1000).toISOString();
 
-  // Find transactions stuck in "processing" for more than STALE_MINUTES
   const { data: staleTxns, error } = await admin
     .from("transactions")
     .select("id, user_id, type, amount, reference, metadata, updated_at")
@@ -44,7 +43,7 @@ export async function GET(request: NextRequest) {
       const providerUsed = (metadata?.provider_used as string) || "";
       const providerResponse = metadata?.providerResponse as Record<string, unknown> | undefined;
 
-      // If no provider was ever called (crash between debit and provider call), auto-reverse
+      // Auto-reverse if no provider was ever called (crash between debit and provider call)
       if (!providerUsed && !providerResponse) {
         const reversalRef = generateReference("REV");
         await admin.rpc("process_wallet_transaction", {
@@ -66,7 +65,6 @@ export async function GET(request: NextRequest) {
         continue;
       }
 
-      // If provider was called, flag for admin review (the requery cron handles provider checks)
       await admin.from("audit_log").insert({
         admin_id: null,
         action: "stale_transaction_flagged",

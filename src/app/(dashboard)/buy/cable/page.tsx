@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Tv } from "lucide-react";
 import ServiceForm from "@/components/dashboard/ServiceForm";
+import { ProviderLogo } from "@/components/ui/ProviderLogo";
 import { CABLE_PROVIDERS } from "@/lib/utils/constants";
 import { formatNaira } from "@/lib/utils/format";
 import { isValidSmartcardNumber } from "@/lib/utils/validators";
@@ -102,12 +103,14 @@ export default function BuyCablePage() {
                 setProvider(p.id);
                 setPlanCode("");
               }}
-              className={`p-3 rounded-xl border text-center text-sm font-medium transition-all ${
+              className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border text-center text-sm font-medium transition-all ${
                 provider === p.id
-                  ? "border-accent bg-accent/10 text-accent"
+                  ? "border-current bg-[color-mix(in_srgb,currentColor_10%,transparent)]"
                   : "border-border hover:border-muted"
               }`}
+              style={provider === p.id ? { color: p.color } : undefined}
             >
+              <ProviderLogo id={p.id} name={p.name} color={p.color} />
               {p.name}
             </button>
           ))}

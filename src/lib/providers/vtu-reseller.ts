@@ -87,8 +87,6 @@ export function createResellerProvider(config: ResellerConfig) {
   return {
     name: config.name,
 
-    // ── Airtime ────────────────────────────────────────────────
-
     async buyAirtime(params: {
       phone: string;
       network: string;
@@ -115,8 +113,6 @@ export function createResellerProvider(config: ResellerConfig) {
       return parseResellerResponse(config.name, data, params.reference);
     },
 
-    // ── Data ───────────────────────────────────────────────────
-
     async buyData(params: {
       phone: string;
       network: string;
@@ -141,8 +137,6 @@ export function createResellerProvider(config: ResellerConfig) {
 
       return parseResellerResponse(config.name, data, params.reference);
     },
-
-    // ── Electricity ────────────────────────────────────────────
 
     async verifyMeter(params: {
       meterNumber: string;
@@ -189,8 +183,6 @@ export function createResellerProvider(config: ResellerConfig) {
       return parseResellerResponse(config.name, data, params.reference);
     },
 
-    // ── Cable TV ───────────────────────────────────────────────
-
     async verifySmartcard(params: {
       smartcardNumber: string;
       provider: string;
@@ -229,8 +221,6 @@ export function createResellerProvider(config: ResellerConfig) {
       return parseResellerResponse(config.name, data, params.reference);
     },
 
-    // ── Exam Pins ──────────────────────────────────────────────
-
     async buyExamPin(params: {
       examType: string;
       quantity: number;
@@ -248,8 +238,6 @@ export function createResellerProvider(config: ResellerConfig) {
       return parseResellerResponse(config.name, data, params.reference);
     },
 
-    // ── Utilities ──────────────────────────────────────────────
-
     async checkBalance(): Promise<{ balance: number }> {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data = await resellerFetch<any>(config, "/user/", { method: "GET" });
@@ -264,7 +252,6 @@ export function createResellerProvider(config: ResellerConfig) {
   };
 }
 
-// Provider instances
 export const maskawasubProvider = createResellerProvider({
   name: "Maskawasub",
   baseUrl: process.env.MASKAWASUB_BASE_URL || "https://www.maskawasub.com/api",

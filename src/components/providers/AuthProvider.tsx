@@ -12,7 +12,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { setWallet, reset: resetWallet } = useWalletStore();
 
   useEffect(() => {
-    // Fetch profile + wallet for authenticated user
     async function loadUser(userId: string) {
       const [profileRes, walletRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", userId).single(),
@@ -32,7 +31,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // Check current session
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
         loadUser(user.id);
@@ -41,7 +39,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
