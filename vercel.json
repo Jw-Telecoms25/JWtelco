@@ -2,11 +2,11 @@
   "crons": [
     {
       "path": "/api/cron/requery",
-      "schedule": "*/15 * * * *"
+      "schedule": "0 0 * * *"
     },
     {
       "path": "/api/cron/reconcile-stale",
-      "schedule": "5,20,35,50 * * * *"
+      "schedule": "0 12 * * *"
     }
   ]
 }
