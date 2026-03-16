@@ -175,9 +175,12 @@ export async function PUT(request: NextRequest) {
     if (errRes) return errRes;
 
     if (isLegacyHash(storedHash)) {
-      const upgradedHash = await bcrypt.hash(String(pin), BCRYPT_ROUNDS);
-      await admin.rpc("set_transaction_pin", { p_user_id: user.id, p_pin_hash: upgradedHash })
-        .catch((err) => logger.warn({ error: err?.message }, "PIN hash upgrade failed"));
+      try {
+        const upgradedHash = await bcrypt.hash(String(pin), BCRYPT_ROUNDS);
+        await admin.rpc("set_transaction_pin", { p_user_id: user.id, p_pin_hash: upgradedHash });
+      } catch (err) {
+        logger.warn({ error: err instanceof Error ? err.message : "Unknown" }, "PIN hash upgrade failed");
+      }
     }
 
     const secret = process.env.PIN_TOKEN_SECRET;
